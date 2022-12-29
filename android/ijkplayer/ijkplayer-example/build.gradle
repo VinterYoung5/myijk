@@ -16,6 +16,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
+        flavorDimensions "default"
     }
     buildTypes {
         release {
@@ -31,28 +32,29 @@ android {
         // arm64 { minSdkVersion 21 }
         // x86 {}
     }
+
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:23.0.1'
-    compile 'com.android.support:preference-v7:23.0.1'
-    compile 'com.android.support:support-annotations:23.0.1'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support:appcompat-v7:23.0.1'
+    implementation 'com.android.support:preference-v7:23.0.1'
+    implementation 'com.android.support:support-annotations:23.0.1'
 
-    compile 'com.squareup:otto:1.3.8'
+    implementation 'com.squareup:otto:1.3.8'
 
-    compile project(':ijkplayer-java')
-    compile project(':ijkplayer-exo')
+    implementation project(':ijkplayer-java')
+    implementation project(':ijkplayer-exo')
+    api project(':ijkplayer-armv7a')
+    //all32Implementation project(':ijkplayer-armv5')
+    //all32Implementation project(':ijkplayer-armv7a')
+    //all32Implementation project(':ijkplayer-x86')
 
-    all32Compile project(':ijkplayer-armv5')
-    all32Compile project(':ijkplayer-armv7a')
-    all32Compile project(':ijkplayer-x86')
-
-    all64Compile project(':ijkplayer-armv5')
-    all64Compile project(':ijkplayer-armv7a')
-    all64Compile project(':ijkplayer-arm64')
-    all64Compile project(':ijkplayer-x86')
-    all64Compile project(':ijkplayer-x86_64')
+    //all64Implementation project(':ijkplayer-armv5')
+    //all64Implementation project(':ijkplayer-armv7a')
+    //all64Implementation project(':ijkplayer-arm64')
+    //all64Implementation project(':ijkplayer-x86')
+    //all64Implementation project(':ijkplayer-x86_64')
 
     // compile 'tv.danmaku.ijk.media:ijkplayer-java:0.8.8'
     // compile 'tv.danmaku.ijk.media:ijkplayer-exo:0.8.8'
