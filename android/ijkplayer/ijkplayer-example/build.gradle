@@ -12,7 +12,7 @@ android {
     }
     defaultConfig {
         applicationId "tv.danmaku.ijk.media.example"
-        minSdkVersion 9
+        minSdkVersion 29
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
@@ -25,7 +25,7 @@ android {
         }
     }
     productFlavors {
-        all32 { minSdkVersion 9 }
+        all32 { minSdkVersion 21 }
         all64 { minSdkVersion 21 }
         // armv5 {}
         // armv7a {}
@@ -46,6 +46,7 @@ dependencies {
     implementation project(':ijkplayer-java')
     implementation project(':ijkplayer-exo')
     api project(':ijkplayer-armv7a')
+    api project(':ijkplayer-arm64')
     //all32Implementation project(':ijkplayer-armv5')
     //all32Implementation project(':ijkplayer-armv7a')
     //all32Implementation project(':ijkplayer-x86')
