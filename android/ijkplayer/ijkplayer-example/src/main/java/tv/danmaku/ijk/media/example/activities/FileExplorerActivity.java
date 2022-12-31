@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.squareup.otto.Subscribe;
 
@@ -45,10 +46,12 @@ public class FileExplorerActivity extends AppActivity {
         }
 
         String lastDirectory = mSettings.getLastDirectory();
-        if (!TextUtils.isEmpty(lastDirectory) && new File(lastDirectory).isDirectory())
+        lastDirectory ="/sdcard";
+        if (!TextUtils.isEmpty(lastDirectory) && new File(lastDirectory).isDirectory()) {
             doOpenDirectory(lastDirectory, false);
-        else
-            doOpenDirectory("/", false);
+        } else {
+            doOpenDirectory("/storage/emulated/0", false);
+        }
     }
 
     @Override
