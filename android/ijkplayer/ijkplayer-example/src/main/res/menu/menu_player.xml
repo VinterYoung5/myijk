@@ -6,21 +6,21 @@
     <item
         android:id="@+id/action_toggle_player"
         android:title="@string/toggle_player"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
     <item
         android:id="@+id/action_toggle_render"
         android:title="@string/toggle_render"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/action_toggle_ratio"
         android:title="@string/toggle_ratio"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
     <item
         android:id="@+id/action_show_info"
         android:title="@string/show_info"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="collapseActionView" />
     <item
         android:id="@+id/action_show_tracks"
         android:title="@string/tracks"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
 </menu>
