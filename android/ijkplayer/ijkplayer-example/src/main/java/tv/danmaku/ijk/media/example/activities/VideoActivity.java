@@ -38,6 +38,9 @@ import android.view.ViewGroup;
 import android.widget.TableLayout;
 import android.widget.TextView;
 
+import android.view.View;
+import android.widget.Toast;
+
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 import tv.danmaku.ijk.media.example.R;
@@ -123,8 +126,19 @@ public class VideoActivity extends AppCompatActivity implements TracksFragment.I
         setSupportActionBar(toolbar);
 
         ActionBar actionBar = getSupportActionBar();
-        mMediaController = new AndroidMediaController(this, false);
+        mMediaController = new AndroidMediaController(this, true);
         mMediaController.setSupportActionBar(actionBar);
+        mMediaController.setPrevNextListeners(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getApplicationContext(), "mNextButton,null job",0).show();
+            }
+        }, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getApplicationContext(), "mPrevButton,null job",0).show();
+            }
+        });
 
         mToastTextView = (TextView) findViewById(R.id.toast_text_view);
         mHudView = (TableLayout) findViewById(R.id.hud_view);
@@ -139,6 +153,7 @@ public class VideoActivity extends AppCompatActivity implements TracksFragment.I
 
         mVideoView = (IjkVideoView) findViewById(R.id.video_view);
         mVideoView.setMediaController(mMediaController);
+
         mVideoView.setHudView(mHudView);
         // prefer mVideoPath
         if (mVideoPath != null)
