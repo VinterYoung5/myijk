@@ -46,7 +46,7 @@ public class FileExplorerActivity extends AppActivity {
         }
 
         String lastDirectory = mSettings.getLastDirectory();
-        lastDirectory ="/sdcard";
+        lastDirectory ="/storage/emulated/0";
         if (!TextUtils.isEmpty(lastDirectory) && new File(lastDirectory).isDirectory()) {
             doOpenDirectory(lastDirectory, false);
         } else {
