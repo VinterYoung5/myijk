@@ -27,6 +27,7 @@ import android.media.TimedText;
 import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
@@ -285,6 +286,15 @@ public class AndroidMediaPlayer extends AbstractMediaPlayer {
     @Override
     public int getAudioSessionId() {
         return mInternalMediaPlayer.getAudioSessionId();
+    }
+    @Override
+    public void setSpeed(float speed) {
+        //return mInternalMediaPlayer.setSpeed(speed);
+        return;
+    }
+    public float getSpeed(float speed) {
+        //return mInternalMediaPlayer.setSpeed(speed);
+        return 0.98f;
     }
 
     @Override

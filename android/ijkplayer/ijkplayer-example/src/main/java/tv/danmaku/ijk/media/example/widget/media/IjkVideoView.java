@@ -38,6 +38,7 @@ import android.widget.FrameLayout;
 import android.widget.MediaController;
 import android.widget.TableLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -129,6 +130,10 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     private long mSeekEndTime = 0;
 
     private TextView subtitleDisplay;
+
+    private static float[] mPlaySpeedRange = {0.1f,0.2f,0.5f,0.75f,1.0f,1.2f,1.5f,2.0f,4.0f,8.0f,16.0f,32.0f};
+    private int mPlaySpeedPos = 4;
+    private float mPlaySpeedValue = 1.0f;
 
     public IjkVideoView(Context context) {
         super(context);
@@ -304,6 +309,31 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             mTargetState = STATE_IDLE;
             AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
             am.abandonAudioFocus(null);
+        }
+    }
+
+    public void playPrevItem() {
+        setPlaySpeed(-1);
+    }
+
+    public void playNextItem() {
+        setPlaySpeed(1);
+    }
+
+    public void setPlaySpeed(int diff) {
+        mPlaySpeedPos = mPlaySpeedPos + diff;
+        mPlaySpeedPos = mPlaySpeedPos < 0 ? 0 : (mPlaySpeedPos > mPlaySpeedRange.length - 1 ? mPlaySpeedRange.length - 1 : mPlaySpeedPos);
+        mPlaySpeedValue= mPlaySpeedRange[mPlaySpeedPos];
+        if (mMediaPlayer != null) {
+            mMediaPlayer.pause();
+            mMediaPlayer.setSpeed(mPlaySpeedValue);
+            mMediaPlayer.start();
+            float getSpeedValue = mMediaPlayer.getSpeed(0.0f);
+            if (getSpeedValue != mPlaySpeedValue) {
+
+            }
+            Log.d("Vmedia", Thread.currentThread().getStackTrace()[2].getFileName()+":"+Thread.currentThread().getStackTrace()[2].getMethodName()+":"+Thread.currentThread().getStackTrace()[2].getLineNumber()+":"+
+                    "set:"+mPlaySpeedValue+",get:" + getSpeedValue);
         }
     }
 

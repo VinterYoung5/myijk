@@ -258,6 +258,17 @@ public class IjkExoMediaPlayer extends AbstractMediaPlayer {
     }
 
     @Override
+    public void setSpeed(float speed) {
+        // TODO: no support
+        return;
+    }
+    @Override
+    public float getSpeed(float speed) {
+        // TODO: no support
+        return 0.01f;
+    }
+
+    @Override
     public MediaInfo getMediaInfo() {
         // TODO: no support
         return null;

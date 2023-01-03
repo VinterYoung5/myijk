@@ -131,12 +131,12 @@ public class VideoActivity extends AppCompatActivity implements TracksFragment.I
         mMediaController.setPrevNextListeners(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(getApplicationContext(), "mNextButton,null job",0).show();
+                mVideoView.playNextItem();
             }
         }, new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(getApplicationContext(), "mPrevButton,null job",0).show();
+                mVideoView.playPrevItem();
             }
         });
 

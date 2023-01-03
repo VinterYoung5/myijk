@@ -115,6 +115,9 @@ public interface IMediaPlayer {
 
     int getAudioSessionId();
 
+    void setSpeed(float speed);
+    float getSpeed(float defaultSpeed);
+
     MediaInfo getMediaInfo();
 
     @SuppressWarnings("EmptyMethod")

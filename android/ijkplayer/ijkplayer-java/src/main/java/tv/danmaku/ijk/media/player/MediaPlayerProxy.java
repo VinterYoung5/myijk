@@ -21,6 +21,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Build;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
@@ -160,6 +161,16 @@ public class MediaPlayerProxy implements IMediaPlayer {
     @Override
     public int getAudioSessionId() {
         return mBackEndMediaPlayer.getAudioSessionId();
+    }
+
+    @Override
+    public void setSpeed(float speed) {
+        mBackEndMediaPlayer.setSpeed(speed);
+    }
+    @Override
+
+    public float getSpeed(float speed) {
+        return mBackEndMediaPlayer.getSpeed(speed);
     }
 
     @Override
