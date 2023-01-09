@@ -313,16 +313,19 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     }
 
     public void playPrevItem() {
-        setPlaySpeed(-1);
+        changePlaySpeed(-1);
     }
 
     public void playNextItem() {
-        setPlaySpeed(1);
+        changePlaySpeed(1);
     }
 
-    public void setPlaySpeed(int diff) {
-        mPlaySpeedPos = mPlaySpeedPos + diff;
-        mPlaySpeedPos = mPlaySpeedPos < 0 ? 0 : (mPlaySpeedPos > mPlaySpeedRange.length - 1 ? mPlaySpeedRange.length - 1 : mPlaySpeedPos);
+    public void changePlaySpeed(int diff) {
+        int speedPos =  mPlaySpeedPos + diff;
+        speedPos = speedPos < 0 ? 0 : (speedPos > mPlaySpeedRange.length - 1 ? mPlaySpeedRange.length - 1 : speedPos);
+        if (mPlaySpeedPos == speedPos)
+            return;
+        mPlaySpeedPos = speedPos;
         mPlaySpeedValue= mPlaySpeedRange[mPlaySpeedPos];
         if (mMediaPlayer != null) {
             mMediaPlayer.pause();
@@ -1071,7 +1074,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
                 IjkMediaPlayer ijkMediaPlayer = null;
                 if (mUri != null) {
                     ijkMediaPlayer = new IjkMediaPlayer();
-                    ijkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_DEBUG);
+                    ijkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_ERROR);
 
                     if (mManifestString != null) {
                         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "iformat", "ijklas");
