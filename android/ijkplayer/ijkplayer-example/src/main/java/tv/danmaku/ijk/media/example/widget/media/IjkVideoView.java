@@ -333,7 +333,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             mMediaPlayer.start();
             float getSpeedValue = mMediaPlayer.getSpeed(0.0f);
             if (getSpeedValue != mPlaySpeedValue) {
-
+                Log.d("Vmedia", "set speed faild");
             }
             Log.d("Vmedia", Thread.currentThread().getStackTrace()[2].getFileName()+":"+Thread.currentThread().getStackTrace()[2].getMethodName()+":"+Thread.currentThread().getStackTrace()[2].getLineNumber()+":"+
                     "set:"+mPlaySpeedValue+",get:" + getSpeedValue);

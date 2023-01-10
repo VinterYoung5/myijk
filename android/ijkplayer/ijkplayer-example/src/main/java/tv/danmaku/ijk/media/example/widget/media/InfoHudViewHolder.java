@@ -47,7 +47,7 @@ public class InfoHudViewHolder {
     public void setMediaPlayer(IMediaPlayer mp) {
         mMediaPlayer = mp;
         if (mMediaPlayer != null) {
-            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_HUD, 500);
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_HUD, 1000);
         } else {
             mHandler.removeMessages(MSG_UPDATE_HUD);
         }
@@ -153,7 +153,7 @@ public class InfoHudViewHolder {
                     setRowValue(R.string.bit_rate, String.format(Locale.US, "%.2f kbs", bitRate/1000f));
 
                     mHandler.removeMessages(MSG_UPDATE_HUD);
-                    mHandler.sendEmptyMessageDelayed(MSG_UPDATE_HUD, 500);
+                    mHandler.sendEmptyMessageDelayed(MSG_UPDATE_HUD, 1000);
                 }
             }
         }
