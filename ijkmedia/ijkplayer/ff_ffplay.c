@@ -1261,11 +1261,13 @@ static double compute_target_delay(FFPlayer *ffp, double delay, VideoState *is)
            delay to compute the threshold. I still don't know
            if it is the best guess */
         sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
-        /* -- by bbcallen: replace is->max_frame_duration with AV_NOSYNC_THRESHOLD */
-        if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD) {
+        if (!isnan(diff) && fabs(diff) < is->max_frame_duration) {
+            
             if (diff <= -sync_threshold)
                 delay = FFMAX(0, delay + diff);
-            else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
+            else if (diff >= sync_threshold && diff > AV_SYNC_THRESHOLD_MAX * 2)//0.1 *2
+                delay = FFMIN((diff / 2), delay);
+            else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD) //0.15
                 delay = delay + diff;
             else if (diff >= sync_threshold)
                 delay = 2 * delay;
@@ -1286,11 +1288,12 @@ static double compute_target_delay(FFPlayer *ffp, double delay, VideoState *is)
 
 static double vp_duration(VideoState *is, Frame *vp, Frame *nextvp) {
     if (vp->serial == nextvp->serial) {
+        double speed = is->vidclk.speed > 0 ? is->vidclk.speed : 1.0f;
         double duration = nextvp->pts - vp->pts;
         if (isnan(duration) || duration <= 0 || duration > is->max_frame_duration)
-            return vp->duration;
+            return vp->duration / speed;
         else
-            return duration;
+            return duration / speed;
     } else {
         return 0.0;
     }
@@ -4575,6 +4578,14 @@ double ffp_get_master_clock(VideoState *is)
     return get_master_clock(is);
 }
 
+void ffp_set_clock_speed(VideoState *is,double speed)
+{
+    set_clock_speed(&is->vidclk, speed);
+    set_clock_speed(&is->audclk, speed);
+    set_clock_speed(&is->extclk, speed);
+    return;
+}
+
 void ffp_toggle_buffering_l(FFPlayer *ffp, int buffering_on)
 {
     if (!ffp->packet_buffering)
@@ -4797,6 +4808,7 @@ void ffp_set_playback_rate(FFPlayer *ffp, float rate)
     av_log(ffp, AV_LOG_INFO, "Playback rate: %f\n", rate);
     ffp->pf_playback_rate = rate;
     ffp->pf_playback_rate_changed = 1;
+    ffp_set_clock_speed(ffp->is,rate);
 }
 
 void ffp_set_playback_volume(FFPlayer *ffp, float volume)

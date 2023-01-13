@@ -64,7 +64,7 @@ import tv.danmaku.ijk.media.example.application.Settings;
 import tv.danmaku.ijk.media.example.services.MediaPlayerService;
 
 public class IjkVideoView extends FrameLayout implements MediaController.MediaPlayerControl {
-    private String TAG = "IjkVideoView";
+    private final String TAG = "IjkVideoView";
     // settable by the client
     private Uri mUri;
     private String mManifestString;
@@ -131,7 +131,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
 
     private TextView subtitleDisplay;
 
-    private static float[] mPlaySpeedRange = {0.1f,0.2f,0.5f,0.75f,1.0f,1.2f,1.5f,2.0f,4.0f,8.0f,16.0f,32.0f};
+    private static float[] mPlaySpeedRange = {0.1f,0.25f,0.5f,0.75f,1.0f,1.2f,1.5f,2.0f,4.0f};//,8.0f,16.0f,32.0f};
     private int mPlaySpeedPos = 4;
     private float mPlaySpeedValue = 1.0f;
 
@@ -323,6 +323,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     public void changePlaySpeed(int diff) {
         int speedPos =  mPlaySpeedPos + diff;
         speedPos = speedPos < 0 ? 0 : (speedPos > mPlaySpeedRange.length - 1 ? mPlaySpeedRange.length - 1 : speedPos);
+        Toast.makeText(mAppContext.getApplicationContext(), "playback speed:" + mPlaySpeedRange[speedPos], Toast.LENGTH_SHORT).show();
         if (mPlaySpeedPos == speedPos)
             return;
         mPlaySpeedPos = speedPos;
