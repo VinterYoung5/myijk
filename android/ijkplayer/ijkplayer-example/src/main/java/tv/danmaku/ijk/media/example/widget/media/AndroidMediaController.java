@@ -24,10 +24,10 @@ import android.support.v7.app.ActionBar;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.MediaController;
-
+import tv.danmaku.ijk.media.example.widget.media.VMediaController;
 import java.util.ArrayList;
-
-public class AndroidMediaController extends MediaController implements IMediaController {
+//public class AndroidMediaController extends MediaController implements IMediaController { //use origin controller
+public class AndroidMediaController extends VMediaController implements IMediaController {  //use selfdefine controller
     private ActionBar mActionBar;
 
     public AndroidMediaController(Context context, AttributeSet attrs) {
@@ -59,7 +59,7 @@ public class AndroidMediaController extends MediaController implements IMediaCon
 
     @Override
     public void show() {
-        super.show(10000);
+        super.show(0);
         if (mActionBar != null)
             mActionBar.show();
     }
