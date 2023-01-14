@@ -39,6 +39,7 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
+import android.widget.Toast;
 
 //import com.android.internal.policy.PhoneWindow;
 
@@ -119,6 +120,8 @@ public class VMediaController extends FrameLayout {
     private ImageButton mNextButton;
     //@UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.P, trackingBug = 115609023)
     private ImageButton mPrevButton;
+    private ImageButton mFun1Button;
+    private ImageButton mFun2Button;
     private CharSequence mPlayDescription;
     private CharSequence mPauseDescription;
     private final AccessibilityManager mAccessibilityManager;
@@ -332,6 +335,23 @@ public class VMediaController extends FrameLayout {
         mPrevButton = v.findViewById(R.id.prev);
         if (mPrevButton != null && !mFromXml && !mListenersSet) {
             mPrevButton.setVisibility(View.GONE);
+        }
+
+        //add unamed function button by vinter
+        mFun1Button = v.findViewById(R.id.fun1);
+        if (mFun1Button != null) {
+            mFun1Button.setOnClickListener(mFun1Listener);
+            if (!mFromXml) {
+                mFun1Button.setVisibility(mUseFastForward ? View.VISIBLE : View.GONE);
+            }
+        }
+
+        mFun2Button = v.findViewById(R.id.fun2);
+        if (mFun2Button != null) {
+            mFun2Button.setOnClickListener(mFun2Listener);
+            if (!mFromXml) {
+                mFun2Button.setVisibility(mUseFastForward ? View.VISIBLE : View.GONE);
+            }
         }
 
         mProgress = v.findViewById(R.id.mediacontroller_progress);
@@ -689,7 +709,7 @@ public class VMediaController extends FrameLayout {
     }
 
 
-    //@UnsupportedAppUsage
+    /*
     private final View.OnClickListener mRewListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -701,8 +721,20 @@ public class VMediaController extends FrameLayout {
             show(sDefaultTimeout);
         }
     };
+    */
+    /* reuse Rewind function to slow speed play */
+    private final View.OnClickListener mRewListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            int pos = mPlayer.getCurrentPosition();
+            pos -= 5000; // milliseconds
+            mPlayer.seekTo(pos);
+            setProgress();
 
-    //@UnsupportedAppUsage
+            show(sDefaultTimeout);
+        }
+    };
+    /*
     private final View.OnClickListener mFfwdListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -714,6 +746,33 @@ public class VMediaController extends FrameLayout {
             show(sDefaultTimeout);
         }
     };
+     */
+    /* reuse fastforword function to slow speed play */
+    private final View.OnClickListener mFfwdListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            int pos = mPlayer.getCurrentPosition();
+            pos += 15000; // milliseconds
+            mPlayer.seekTo(pos);
+            setProgress();
+
+            show(sDefaultTimeout);
+        }
+    };
+
+    private final View.OnClickListener mFun1Listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Toast.makeText(mContext.getApplicationContext(),"fun1 pressed:", Toast.LENGTH_SHORT).show();
+        }
+    };
+    private final View.OnClickListener mFun2Listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Toast.makeText(mContext.getApplicationContext(),"fun2 pressed:", Toast.LENGTH_SHORT).show();
+        }
+    };
+
 
     private void installPrevNextListeners() {
         if (mNextButton != null) {

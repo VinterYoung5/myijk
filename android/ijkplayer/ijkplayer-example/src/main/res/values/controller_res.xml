@@ -23,8 +23,9 @@
     <!--styles-->
     <style name="MediaButton">
         <item name="android:background">@null</item>
-        <item name="android:layout_width">48dip</item>
+        <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">36dip</item>
+        <item name="android:layout_weight">1</item>
         <item name="android:scaleType">centerInside</item>
     </style>
 
@@ -41,11 +42,19 @@
         <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
     </style>
     <style name="MediaButton.Play">
-        <item name="android:src">@drawable/ic_play_circle_filled_white_48dp</item>
+        <item name="android:src">@drawable/ic_play_arrow_white_48dp</item>
         <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
     </style>
     <style name="MediaButton.Next">
         <item name="android:src">@drawable/ic_skip_next_white_48dp</item>
+        <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
+    </style>
+    <style name="MediaButton.Fun1">
+        <item name="android:src">@drawable/ic_action_dark_filter</item>
+        <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
+    </style>
+    <style name="MediaButton.Fun2">
+        <item name="android:src">@drawable/ic_action_dark_settings</item>
         <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
     </style>
 </resources>

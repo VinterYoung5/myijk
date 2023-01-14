@@ -33,24 +33,31 @@
         android:paddingTop="4dip">
 
         <ImageButton
-            android:id="@+id/prev"
-            style="@style/MediaButton.Previous"/>
+            android:id="@+id/pause"
+            style="@style/MediaButton.Play"/>
+
 
         <ImageButton
             android:id="@+id/rew"
             style="@style/MediaButton.Rew"/>
 
         <ImageButton
-            android:id="@+id/pause"
-            style="@style/MediaButton.Play"/>
-
-        <ImageButton
             android:id="@+id/ffwd"
             style="@style/MediaButton.Ffwd"/>
+        <ImageButton
+            android:id="@+id/prev"
+            style="@style/MediaButton.Previous"/>
 
         <ImageButton
             android:id="@+id/next"
             style="@style/MediaButton.Next"/>
+        <ImageButton
+            android:id="@+id/fun1"
+            style="@style/MediaButton.Fun1"/>
+
+        <ImageButton
+            android:id="@+id/fun2"
+            style="@style/MediaButton.Fun2"/>
 
     </LinearLayout>
 
@@ -72,26 +79,25 @@
             android:paddingTop="4dip"
             android:textColor="@android:color/white"
             android:textSize="14sp"
-            tools:text="10:11"/>
+            tools:text="00:00:01"/>
 
         <SeekBar
             android:id="@+id/mediacontroller_progress"
             style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentStart="true"
-            android:layout_below="@id/time_current"
+            android:layout_toRightOf="@+id/time_current"
+            android:layout_toLeftOf="@+id/time"
+            android:layout_alignTop="@+id/time_current"
+            android:layout_alignBottom ="@+id/time_current"
             tools:progress="20"
-            tools:secondaryProgress="65"/>
+            tools:secondaryProgress="65"
+            />
 
         <TextView
             android:id="@+id/time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_above="@id/mediacontroller_progress"
             android:layout_alignParentRight="true"
             android:layout_gravity="center_horizontal"
             android:paddingEnd="4dip"
@@ -99,6 +105,6 @@
             android:paddingTop="4dip"
             android:textColor="@android:color/white"
             android:textSize="14sp"
-            tools:text="1:21:11"/>
+            tools:text="00:00:20"/>
     </RelativeLayout>
 </LinearLayout>
