@@ -63,7 +63,7 @@ import tv.danmaku.ijk.media.example.R;
 import tv.danmaku.ijk.media.example.application.Settings;
 import tv.danmaku.ijk.media.example.services.MediaPlayerService;
 
-public class IjkVideoView extends FrameLayout implements MediaController.MediaPlayerControl {
+public class IjkVideoView extends FrameLayout implements VMediaController.MediaPlayerControl {
     private final String TAG = "IjkVideoView";
     // settable by the client
     private Uri mUri;
@@ -130,7 +130,6 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     private long mSeekEndTime = 0;
 
     private TextView subtitleDisplay;
-
     private static float[] mPlaySpeedRange = {0.1f,0.25f,0.5f,0.75f,1.0f,1.2f,1.5f,2.0f,4.0f};//,8.0f,16.0f,32.0f};
     private int mPlaySpeedPos = 4;
     private float mPlaySpeedValue = 1.0f;
@@ -313,11 +312,13 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
     }
 
     public void playPrevItem() {
-        changePlaySpeed(-1);
+        Toast.makeText(mAppContext.getApplicationContext(),"PrevItem :step prev", Toast.LENGTH_SHORT).show();
+        //changePlaySpeed(-1);
     }
 
     public void playNextItem() {
-        changePlaySpeed(1);
+        Toast.makeText(mAppContext.getApplicationContext(),"NextItem :step next", Toast.LENGTH_SHORT).show();
+        //changePlaySpeed(1);
     }
 
     public void changePlaySpeed(int diff) {
@@ -339,6 +340,14 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
             Log.d("Vmedia", Thread.currentThread().getStackTrace()[2].getFileName()+":"+Thread.currentThread().getStackTrace()[2].getMethodName()+":"+Thread.currentThread().getStackTrace()[2].getLineNumber()+":"+
                     "set:"+mPlaySpeedValue+",get:" + getSpeedValue);
         }
+    }
+
+    public void setFun1(int parm) {
+        Toast.makeText(mAppContext.getApplicationContext(), "setFun1 " + parm, Toast.LENGTH_SHORT).show();
+    }
+
+    public void setFun2(int parm) {
+        Toast.makeText(mAppContext.getApplicationContext(), "setFun2 " + parm, Toast.LENGTH_SHORT).show();
     }
 
     @TargetApi(Build.VERSION_CODES.M)

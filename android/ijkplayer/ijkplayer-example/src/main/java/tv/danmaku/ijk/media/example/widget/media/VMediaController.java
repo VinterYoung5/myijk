@@ -79,7 +79,8 @@ import tv.danmaku.ijk.media.example.R;
 public class VMediaController extends FrameLayout {
 
     //@UnsupportedAppUsage
-    private MediaController.MediaPlayerControl mPlayer;
+    private MediaPlayerControl mPlayer;
+    //private MediaController.MediaPlayerControl mPlayer;
     //@UnsupportedAppUsage
     private final Context mContext;
     //@UnsupportedAppUsage
@@ -122,6 +123,7 @@ public class VMediaController extends FrameLayout {
     private ImageButton mPrevButton;
     private ImageButton mFun1Button;
     private ImageButton mFun2Button;
+
     private CharSequence mPlayDescription;
     private CharSequence mPauseDescription;
     private final AccessibilityManager mAccessibilityManager;
@@ -253,7 +255,7 @@ public class VMediaController extends FrameLayout {
         }
     };
 
-    public void setMediaPlayer(MediaController.MediaPlayerControl player) {
+    public void setMediaPlayer(MediaPlayerControl player) {
         mPlayer = player;
         updatePausePlay();
     }
@@ -708,7 +710,6 @@ public class VMediaController extends FrameLayout {
         return VMediaController.class.getName();
     }
 
-
     /*
     private final View.OnClickListener mRewListener = new View.OnClickListener() {
         @Override
@@ -722,15 +723,13 @@ public class VMediaController extends FrameLayout {
         }
     };
     */
+
     /* reuse Rewind function to slow speed play */
     private final View.OnClickListener mRewListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            int pos = mPlayer.getCurrentPosition();
-            pos -= 5000; // milliseconds
-            mPlayer.seekTo(pos);
-            setProgress();
-
+            //Toast.makeText(mContext.getApplicationContext(),"Rew :slowspeed", Toast.LENGTH_SHORT).show();
+            mPlayer.changePlaySpeed(-1);
             show(sDefaultTimeout);
         }
     };
@@ -751,11 +750,8 @@ public class VMediaController extends FrameLayout {
     private final View.OnClickListener mFfwdListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            int pos = mPlayer.getCurrentPosition();
-            pos += 15000; // milliseconds
-            mPlayer.seekTo(pos);
-            setProgress();
-
+            //Toast.makeText(mContext.getApplicationContext(),"Ffwd :fastspeed", Toast.LENGTH_SHORT).show();
+            mPlayer.changePlaySpeed(1);
             show(sDefaultTimeout);
         }
     };
@@ -763,13 +759,16 @@ public class VMediaController extends FrameLayout {
     private final View.OnClickListener mFun1Listener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Toast.makeText(mContext.getApplicationContext(),"fun1 pressed:", Toast.LENGTH_SHORT).show();
+            mPlayer.setFun1(1);
+            //Toast.makeText(mContext.getApplicationContext(),"fun1 pressed:", Toast.LENGTH_SHORT).show();
         }
     };
+
     private final View.OnClickListener mFun2Listener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Toast.makeText(mContext.getApplicationContext(),"fun2 pressed:", Toast.LENGTH_SHORT).show();
+            mPlayer.setFun2(2);
+            //Toast.makeText(mContext.getApplicationContext(),"fun2 pressed:", Toast.LENGTH_SHORT).show();
         }
     };
 
@@ -803,4 +802,25 @@ public class VMediaController extends FrameLayout {
         }
     }
 
+    public interface MediaPlayerControl {
+        void    start();
+        void    pause();
+        int     getDuration();
+        int     getCurrentPosition();
+        void    seekTo(int pos);
+        boolean isPlaying();
+        int     getBufferPercentage();
+        boolean canPause();
+        boolean canSeekBackward();
+        boolean canSeekForward();
+        void changePlaySpeed(int diff);
+        void setFun1(int parm);
+        void setFun2(int parm);
+        /**
+         * Get the audio session id for the player used by this VideoView. This can be used to
+         * apply audio effects to the audio track of a video.
+         * @return The audio session, or 0 if there was an error.
+         */
+        int     getAudioSessionId();
+    }
 }

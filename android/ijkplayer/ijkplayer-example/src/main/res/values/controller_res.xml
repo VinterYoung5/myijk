@@ -50,7 +50,7 @@
         <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
     </style>
     <style name="MediaButton.Fun1">
-        <item name="android:src">@drawable/ic_action_dark_filter</item>
+        <item name="android:src">@drawable/ic_action_dark_settings</item>
         <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
     </style>
     <style name="MediaButton.Fun2">
