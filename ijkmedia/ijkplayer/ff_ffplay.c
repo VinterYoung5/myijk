@@ -3079,8 +3079,10 @@ static int read_thread(void *arg)
     int last_error = 0;
     int64_t prev_io_tick_counter = 0;
     int64_t io_tick_counter = 0;
+    AVBitStreamFilterContext* h264bsfc = NULL;
     int init_ijkmeta = 0;
-
+    bool is_annexb = false;
+    bool set_annexb_filter = false;
     if (!wait_mutex) {
         av_log(NULL, AV_LOG_FATAL, "SDL_CreateMutex(): %s\n", SDL_GetError());
         ret = AVERROR(ENOMEM);
@@ -3286,6 +3288,15 @@ static int read_thread(void *arg)
     ret = -1;
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
         ret = stream_component_open(ffp, st_index[AVMEDIA_TYPE_VIDEO]);
+        if (ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->codec_id == AV_CODEC_ID_H264) {
+            //0x31637661 = "avc1":avc1: nalusize+naludata :avcc mode;h264:startcode+naludata:annexb mode
+            is_annexb = strcmp(av_fourcc2str(ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->codec_tag), "avc1") == 0 ? false : true; 
+            if (!is_annexb) {
+                h264bsfc =  av_bitstream_filter_init("h264_mp4toannexb");
+                //get speed, speed >4.0f, need select ipb frame package,then need filter
+                set_annexb_filter = true;
+            }
+        }
     }
     if (is->show_mode == SHOW_MODE_NONE)
         is->show_mode = ret >= 0 ? SHOW_MODE_VIDEO : SHOW_MODE_RDFT;
@@ -3596,7 +3607,24 @@ static int read_thread(void *arg)
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
+//            if (pkt->flags & AV_PKT_FLAG_KEY){
+//                packet_queue_put(&is->videoq, pkt);
+//            } else {
+//                av_packet_unref(pkt);
+//            }
+            if (!is_annexb && set_annexb_filter) {
+                av_bitstream_filter_filter(h264bsfc, ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codec, NULL, &pkt->data, &pkt->size, pkt->data, pkt->size, 0);
+            }
+
             packet_queue_put(&is->videoq, pkt);
+
+            av_log(NULL, AV_LOG_ERROR, "%s %d yangwen. size %d pts %lld,key %d,is_annexb %d\n",__FUNCTION__,__LINE__,  pkt->size, pkt->pts,pkt->flags&AV_PKT_FLAG_KEY,is_annexb);
+            av_log(NULL, AV_LOG_ERROR, "%02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x\n"
+                ,*(pkt->data),*(pkt->data+1),*(pkt->data+2),*(pkt->data+3),*(pkt->data+4),*(pkt->data+5),*(pkt->data+6),*(pkt->data+7)
+                ,*(pkt->data+8),*(pkt->data+9),*(pkt->data+10),*(pkt->data+11),*(pkt->data+12),*(pkt->data+13),*(pkt->data+14),*(pkt->data+15)
+                ,*(pkt->data+16),*(pkt->data+17),*(pkt->data+18),*(pkt->data+19),*(pkt->data+20),*(pkt->data+21),*(pkt->data+22),*(pkt->data+23)
+                ,*(pkt->data+24),*(pkt->data+25),*(pkt->data+26),*(pkt->data+27),*(pkt->data+28),*(pkt->data+29),*(pkt->data+30),*(pkt->data+31)
+                );
         } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
             packet_queue_put(&is->subtitleq, pkt);
         } else {
@@ -3637,6 +3665,7 @@ static int read_thread(void *arg)
         ffp->last_error = last_error;
         ffp_notify_msg2(ffp, FFP_MSG_ERROR, last_error);
     }
+    av_bitstream_filter_close(h264bsfc); 
     SDL_DestroyMutex(wait_mutex);
     return 0;
 }
