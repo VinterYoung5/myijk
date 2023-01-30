@@ -3001,7 +3001,7 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
             avctx->skip_loop_filter = FFMAX(avctx->skip_loop_filter, AVDISCARD_NONREF);
             avctx->skip_idct        = FFMAX(avctx->skip_loop_filter, AVDISCARD_NONREF);
         }
-
+        ffp->vid_avctx = avctx;
         break;
     case AVMEDIA_TYPE_SUBTITLE:
         if (!ffp->subtitle) break;
@@ -3080,9 +3080,11 @@ static int read_thread(void *arg)
     int64_t prev_io_tick_counter = 0;
     int64_t io_tick_counter = 0;
     AVBitStreamFilterContext* h264bsfc = NULL;
+    AVCodecParserContext *parser = NULL;
     int init_ijkmeta = 0;
     bool is_annexb = false;
     bool set_annexb_filter = false;
+
     if (!wait_mutex) {
         av_log(NULL, AV_LOG_FATAL, "SDL_CreateMutex(): %s\n", SDL_GetError());
         ret = AVERROR(ENOMEM);
@@ -3289,13 +3291,15 @@ static int read_thread(void *arg)
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
         ret = stream_component_open(ffp, st_index[AVMEDIA_TYPE_VIDEO]);
         if (ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->codec_id == AV_CODEC_ID_H264) {
-            //0x31637661 = "avc1":avc1: nalusize+naludata :avcc mode;h264:startcode+naludata:annexb mode
+            //0x31637661 = "avc1":avc1: nalusize+naludata-mp4 mode/avc1 mode;h264:startcode+naludata:annexb mode
             is_annexb = strcmp(av_fourcc2str(ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->codec_tag), "avc1") == 0 ? false : true; 
             if (!is_annexb) {
                 h264bsfc =  av_bitstream_filter_init("h264_mp4toannexb");
-                //get speed, speed >4.0f, need select ipb frame package,then need filter
-                set_annexb_filter = true;
             }
+        }
+        parser = av_parser_init(ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->codec_id);
+        if (!parser) {
+            av_log(NULL, AV_LOG_ERROR,"av_parser_init failed\n");
         }
     }
     if (is->show_mode == SHOW_MODE_NONE)
@@ -3607,24 +3611,40 @@ static int read_thread(void *arg)
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
-//            if (pkt->flags & AV_PKT_FLAG_KEY){
-//                packet_queue_put(&is->videoq, pkt);
-//            } else {
-//                av_packet_unref(pkt);
-//            }
+
+            int ret;
+            int src_length = 0;
+            //get speed, speed >4.0f, need select ipb frame package,then need filter
+            set_annexb_filter = true;
             if (!is_annexb && set_annexb_filter) {
-                av_bitstream_filter_filter(h264bsfc, ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codec, NULL, &pkt->data, &pkt->size, pkt->data, pkt->size, 0);
+                //int64_t time1, time2;
+                //time1 = av_gettime_relative();
+                //av_bitstream_filter_filter(h264bsfc, ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codec, NULL, &pkt->data, &pkt->size, pkt->data, pkt->size, 0);
+                //time2 = av_gettime_relative();
+                //av_log(NULL, AV_LOG_ERROR, "%s %d av_bitstream_filter_filter time cost: %lld\n",__FUNCTION__,__LINE__,time2 - time1);
             }
-
-            packet_queue_put(&is->videoq, pkt);
-
-            av_log(NULL, AV_LOG_ERROR, "%s %d yangwen. size %d pts %lld,key %d,is_annexb %d\n",__FUNCTION__,__LINE__,  pkt->size, pkt->pts,pkt->flags&AV_PKT_FLAG_KEY,is_annexb);
             av_log(NULL, AV_LOG_ERROR, "%02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x\n"
                 ,*(pkt->data),*(pkt->data+1),*(pkt->data+2),*(pkt->data+3),*(pkt->data+4),*(pkt->data+5),*(pkt->data+6),*(pkt->data+7)
                 ,*(pkt->data+8),*(pkt->data+9),*(pkt->data+10),*(pkt->data+11),*(pkt->data+12),*(pkt->data+13),*(pkt->data+14),*(pkt->data+15)
                 ,*(pkt->data+16),*(pkt->data+17),*(pkt->data+18),*(pkt->data+19),*(pkt->data+20),*(pkt->data+21),*(pkt->data+22),*(pkt->data+23)
                 ,*(pkt->data+24),*(pkt->data+25),*(pkt->data+26),*(pkt->data+27),*(pkt->data+28),*(pkt->data+29),*(pkt->data+30),*(pkt->data+31)
                 );
+
+            if (parser){
+                //int64_t time1, time2;
+                //time1 = av_gettime_relative();
+                ret = av_parser_parse2(parser, ffp->vid_avctx, &pkt->data, &pkt->size,pkt->data, pkt->size, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+                //time2 = av_gettime_relative();
+                //av_log(NULL, AV_LOG_ERROR, "%s %d av_parser_parse2 time cost: %lld\n",__FUNCTION__,__LINE__,time2 - time1);
+                if (ret < 0) {
+                    av_log(NULL, AV_LOG_ERROR, "%s %d av_parser_parse2 not finish: %d\n",__FUNCTION__,__LINE__,ret,parser->pict_type);
+                } else {
+                    av_log(NULL, AV_LOG_ERROR, "%s %d av_parser_parse2 ok pict_type: %s\n",__FUNCTION__,__LINE__,
+                        parser->pict_type ==  AV_PICTURE_TYPE_I ? "I_frame" : parser->pict_type ==  AV_PICTURE_TYPE_P ? "P_frame" : "B_frame");
+                }
+            }
+            packet_queue_put(&is->videoq, pkt);
+
         } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
             packet_queue_put(&is->subtitleq, pkt);
         } else {
