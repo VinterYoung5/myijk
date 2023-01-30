@@ -1101,6 +1101,11 @@ static void set_clock_speed(Clock *c, double speed)
     c->speed = speed;
 }
 
+static void get_clock_speed(Clock *c, double *speed)
+{
+    *speed = c->speed;
+}
+
 static void init_clock(Clock *c, int *queue_serial)
 {
     c->speed = 1.0;
@@ -3614,6 +3619,10 @@ static int read_thread(void *arg)
 
             int ret;
             int src_length = 0;
+            char *parser_data = NULL;
+            int parser_size = 0;
+            bool drop_frame = false;
+            double set_speed = 1.0f;
             //get speed, speed >4.0f, need select ipb frame package,then need filter
             set_annexb_filter = true;
             if (!is_annexb && set_annexb_filter) {
@@ -3623,27 +3632,45 @@ static int read_thread(void *arg)
                 //time2 = av_gettime_relative();
                 //av_log(NULL, AV_LOG_ERROR, "%s %d av_bitstream_filter_filter time cost: %lld\n",__FUNCTION__,__LINE__,time2 - time1);
             }
-            av_log(NULL, AV_LOG_ERROR, "%02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x\n"
-                ,*(pkt->data),*(pkt->data+1),*(pkt->data+2),*(pkt->data+3),*(pkt->data+4),*(pkt->data+5),*(pkt->data+6),*(pkt->data+7)
-                ,*(pkt->data+8),*(pkt->data+9),*(pkt->data+10),*(pkt->data+11),*(pkt->data+12),*(pkt->data+13),*(pkt->data+14),*(pkt->data+15)
-                ,*(pkt->data+16),*(pkt->data+17),*(pkt->data+18),*(pkt->data+19),*(pkt->data+20),*(pkt->data+21),*(pkt->data+22),*(pkt->data+23)
-                ,*(pkt->data+24),*(pkt->data+25),*(pkt->data+26),*(pkt->data+27),*(pkt->data+28),*(pkt->data+29),*(pkt->data+30),*(pkt->data+31)
-                );
+            av_log(NULL, AV_LOG_ERROR, "%s %d yangwen. size %d pts %lld,key %d\n",__FUNCTION__,__LINE__,  pkt->size, pkt->pts,pkt->flags&AV_PKT_FLAG_KEY);
+//            av_log(NULL, AV_LOG_ERROR, "%02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x    %02x %02x %02x %02x %02x %02x %02x %02x\n"
+//                ,*(pkt->data),*(pkt->data+1),*(pkt->data+2),*(pkt->data+3),*(pkt->data+4),*(pkt->data+5),*(pkt->data+6),*(pkt->data+7)
+//                ,*(pkt->data+8),*(pkt->data+9),*(pkt->data+10),*(pkt->data+11),*(pkt->data+12),*(pkt->data+13),*(pkt->data+14),*(pkt->data+15)
+//                ,*(pkt->data+16),*(pkt->data+17),*(pkt->data+18),*(pkt->data+19),*(pkt->data+20),*(pkt->data+21),*(pkt->data+22),*(pkt->data+23)
+//                ,*(pkt->data+24),*(pkt->data+25),*(pkt->data+26),*(pkt->data+27),*(pkt->data+28),*(pkt->data+29),*(pkt->data+30),*(pkt->data+31)
+//                );
 
+            //while (parser){
             if (parser){
                 //int64_t time1, time2;
                 //time1 = av_gettime_relative();
-                ret = av_parser_parse2(parser, ffp->vid_avctx, &pkt->data, &pkt->size,pkt->data, pkt->size, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+                ret = av_parser_parse2(parser, ffp->vid_avctx, &parser_data, &parser_size,pkt->data, pkt->size, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
                 //time2 = av_gettime_relative();
                 //av_log(NULL, AV_LOG_ERROR, "%s %d av_parser_parse2 time cost: %lld\n",__FUNCTION__,__LINE__,time2 - time1);
-                if (ret < 0) {
-                    av_log(NULL, AV_LOG_ERROR, "%s %d av_parser_parse2 not finish: %d\n",__FUNCTION__,__LINE__,ret,parser->pict_type);
+
+                av_log(NULL, AV_LOG_ERROR, "%s %d av_parser_parse2  %d,parser_size %d,type %d\n",__FUNCTION__,__LINE__,ret,parser_size,parser->pict_type);
+
+                if (ret <= 0) {
+                } else if (ret >= pkt->size){ //only one slice 
+
                 } else {
-                    av_log(NULL, AV_LOG_ERROR, "%s %d av_parser_parse2 ok pict_type: %s\n",__FUNCTION__,__LINE__,
-                        parser->pict_type ==  AV_PICTURE_TYPE_I ? "I_frame" : parser->pict_type ==  AV_PICTURE_TYPE_P ? "P_frame" : "B_frame");
+                    //if multi slice, parser and base second slice
+                    ret = av_parser_parse2(parser, ffp->vid_avctx, &parser_data, &parser_size,pkt->data+ret, pkt->size-ret, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
                 }
+                ffp_get_vid_clock_speed(is,&set_speed);
+                if ((set_speed >= 16.0f && parser->pict_type !=  AV_PICTURE_TYPE_I) ||
+                    (set_speed >= 4.0f && parser->pict_type !=  AV_PICTURE_TYPE_I && parser->pict_type !=  AV_PICTURE_TYPE_P)) {
+                    drop_frame = true;
+                } 
+                av_log(NULL, AV_LOG_ERROR, "%s %d yangwen.set_speed %llf,drop_frame %d, size %d pts %lld,key %d,parsed %d pict_type: %s\n",__FUNCTION__,__LINE__,set_speed,drop_frame, pkt->size, pkt->pts,pkt->flags&AV_PKT_FLAG_KEY,ret,parser->pict_type ==  AV_PICTURE_TYPE_I ? "I_frame" : parser->pict_type ==  AV_PICTURE_TYPE_P ? "P_frame" : "B_frame");
+
             }
-            packet_queue_put(&is->videoq, pkt);
+
+            if (!drop_frame) {
+                packet_queue_put(&is->videoq, pkt);
+            } else {
+                av_packet_unref(pkt);
+            }
 
         } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
             packet_queue_put(&is->subtitleq, pkt);
@@ -4632,6 +4659,12 @@ void ffp_set_clock_speed(VideoState *is,double speed)
     set_clock_speed(&is->vidclk, speed);
     set_clock_speed(&is->audclk, speed);
     set_clock_speed(&is->extclk, speed);
+    return;
+}
+
+void ffp_get_vid_clock_speed(VideoState *is,double *speed)
+{
+    get_clock_speed(&is->vidclk, speed);
     return;
 }
 
