@@ -82,7 +82,7 @@
 #define FAST_BUFFERING_CHECK_PER_MILLISECONDS   (50)
 #define MAX_RETRY_CONVERT_IMAGE                 (3)
 
-#define MAX_QUEUE_SIZE (15 * 1024 * 1024)
+#define MAX_QUEUE_SIZE (5 * 1024 * 1024)
 #define MAX_ACCURATE_SEEK_TIMEOUT (5000)
 #ifdef FFP_MERGE
 #define MIN_FRAMES 25
@@ -418,6 +418,8 @@ typedef struct VideoState {
     SDL_cond  *audio_accurate_seek_cond;
     volatile int initialized_decoder;
     int seek_buffering;
+    int set_video_mode;
+    int cur_video_mode;
 } VideoState;
 
 /* options specified by the user */
