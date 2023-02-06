@@ -106,6 +106,8 @@
 #define AVFMT_FLAG_VIDEO_FRAME_I 0x10000000
 #define AVFMT_FLAG_VIDEO_FRAME_P 0x20000000
 #define AVFMT_FLAG_VIDEO_FRAME_B 0x40000000
+#define FFP_VIDEO_STEP_NEXT_MODE_FORWORD 1
+#define FFP_VIDEO_STEP_NEXT_MODE_REVERSE -1
 
 // static const AVOption ffp_context_options[] = ...
 #include "ff_ffplay_options.h"
@@ -1280,10 +1282,13 @@ static void toggle_pause(FFPlayer *ffp, int pause_on)
 static void step_to_next_frame_l(FFPlayer *ffp)
 {
     VideoState *is = ffp->is;
+    SDL_LockMutex(ffp->is->play_mutex);
     is->step = 1;
+    SDL_UnlockMutex(ffp->is->play_mutex);
     /* if the stream is paused unpause it, then step */
     if (is->paused)
         stream_toggle_pause_l(ffp, 0);
+
 }
 
 static double compute_target_delay(FFPlayer *ffp, double delay, VideoState *is)
@@ -1445,9 +1450,10 @@ retry:
 
             SDL_LockMutex(ffp->is->play_mutex);
             if (is->step) {
-                is->step = 0;
+                //is->step = 0;
                 if (!is->paused)
-                    stream_update_pause_l(ffp);
+                    //stream_update_pause_l(ffp);
+                    stream_toggle_pause_l(ffp, 1);
             }
             SDL_UnlockMutex(ffp->is->play_mutex);
         }
@@ -5167,6 +5173,15 @@ void ffp_set_property_int64(FFPlayer *ffp, int id, int64_t value)
             if (ffp) {
                 ijkio_manager_immediate_reconnect(ffp->ijkio_manager_ctx);
             }
+            break;
+        case FFP_PROP_INT64_STEP_NEXT_MODE:
+            if (ffp) {
+                if (value == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
+                    step_to_next_frame_l(ffp);
+                } else if(value == FFP_VIDEO_STEP_NEXT_MODE_REVERSE) {
+                }
+            }
+            break;
         default:
             break;
     }
