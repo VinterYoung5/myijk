@@ -117,7 +117,7 @@ public interface IMediaPlayer {
 
     void setSpeed(float speed);
     float getSpeed(float defaultSpeed);
-
+    void stepNext(int mode);
     MediaInfo getMediaInfo();
 
     @SuppressWarnings("EmptyMethod")

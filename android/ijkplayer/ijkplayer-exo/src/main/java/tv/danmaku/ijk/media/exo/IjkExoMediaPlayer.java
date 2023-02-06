@@ -267,7 +267,11 @@ public class IjkExoMediaPlayer extends AbstractMediaPlayer {
         // TODO: no support
         return 0.01f;
     }
-
+    @Override
+    public void stepNext(int mode) {
+        // TODO: no support
+        return;
+    }
     @Override
     public MediaInfo getMediaInfo() {
         // TODO: no support

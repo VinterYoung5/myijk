@@ -292,11 +292,16 @@ public class AndroidMediaPlayer extends AbstractMediaPlayer {
         //return mInternalMediaPlayer.setSpeed(speed);
         return;
     }
+    @Override
     public float getSpeed(float speed) {
-        //return mInternalMediaPlayer.setSpeed(speed);
+        //return mInternalMediaPlayer.getSpeed(speed);
         return 0.98f;
     }
-
+    @Override
+    public void stepNext(int mode){
+        //return mInternalMediaPlayer.stepNext(speed);
+        return;
+    }
     @Override
     public MediaInfo getMediaInfo() {
         if (sMediaInfo == null) {

@@ -130,7 +130,7 @@ public class IjkVideoView extends FrameLayout implements VMediaController.MediaP
     private long mSeekEndTime = 0;
 
     private TextView subtitleDisplay;
-    private static float[] mPlaySpeedRange = {0.1f,0.25f,0.5f,0.75f,1.0f,1.2f,1.5f,2.0f,4.0f};//,8.0f,16.0f,32.0f};
+    private static float[] mPlaySpeedRange = {0.1f,0.25f,0.5f,0.75f,1.0f,1.2f,1.5f,2.0f,4.0f,8.0f,16.0f,32.0f};
     private int mPlaySpeedPos = 4;
     private float mPlaySpeedValue = 1.0f;
 
@@ -312,19 +312,20 @@ public class IjkVideoView extends FrameLayout implements VMediaController.MediaP
     }
 
     public void playPrevItem() {
-        Toast.makeText(mAppContext.getApplicationContext(),"PrevItem :step prev", Toast.LENGTH_SHORT).show();
-        //changePlaySpeed(-1);
+        //Toast.makeText(mAppContext.getApplicationContext(),"PrevItem :step prev", Toast.LENGTH_SHORT).show();
+        mMediaPlayer.stepNext(-1);
     }
 
     public void playNextItem() {
-        Toast.makeText(mAppContext.getApplicationContext(),"NextItem :step next", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(mAppContext.getApplicationContext(),"NextItem :step next", Toast.LENGTH_SHORT).show();
         //changePlaySpeed(1);
+        mMediaPlayer.stepNext(1);
     }
 
     public void changePlaySpeed(int diff) {
         int speedPos =  mPlaySpeedPos + diff;
         speedPos = speedPos < 0 ? 0 : (speedPos > mPlaySpeedRange.length - 1 ? mPlaySpeedRange.length - 1 : speedPos);
-        Toast.makeText(mAppContext.getApplicationContext(), "playback speed:" + mPlaySpeedRange[speedPos], Toast.LENGTH_SHORT).show();
+        Toast.makeText(mAppContext.getApplicationContext(), "playback speed:" + mPlaySpeedRange[speedPos] , Toast.LENGTH_SHORT).show();
         if (mPlaySpeedPos == speedPos)
             return;
         mPlaySpeedPos = speedPos;

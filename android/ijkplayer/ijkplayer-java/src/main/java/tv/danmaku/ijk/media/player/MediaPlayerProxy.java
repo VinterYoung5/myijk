@@ -167,10 +167,14 @@ public class MediaPlayerProxy implements IMediaPlayer {
     public void setSpeed(float speed) {
         mBackEndMediaPlayer.setSpeed(speed);
     }
-    @Override
 
+    @Override
     public float getSpeed(float speed) {
         return mBackEndMediaPlayer.getSpeed(speed);
+    }
+    @Override
+    public void stepNext(int mode) {
+        mBackEndMediaPlayer.stepNext(mode);
     }
 
     @Override
