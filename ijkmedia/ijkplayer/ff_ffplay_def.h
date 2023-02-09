@@ -227,6 +227,7 @@ typedef struct Frame {
     int format;
     AVRational sar;
     int uploaded;
+    enum AVPictureType pict_type;
 } Frame;
 
 typedef struct FrameQueue {

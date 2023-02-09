@@ -913,6 +913,7 @@ static void video_image_display2(FFPlayer *ffp)
 
     vp = frame_queue_peek_last(&is->pictq);
 
+    av_log(NULL, AV_LOG_FATAL, "%s %d.yangwen vppts %llf,type %d\n",__FUNCTION__,__LINE__,vp->pts,vp->pict_type);
     if (vp->bmp) {
         if (is->subtitle_st) {
             if (frame_queue_nb_remaining(&is->subpq) > 0) {
@@ -1709,7 +1710,9 @@ static int queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double d
         }
         /* update the bitmap content */
         SDL_VoutUnlockYUVOverlay(vp->bmp);
-
+        vp->pict_type = src_frame->pict_type;
+        av_log(NULL, AV_LOG_FATAL, "%s %d.yangwen type %d, vp type %d,pts %lld\n",__FUNCTION__,__LINE__,src_frame->pict_type,vp->pict_type,src_frame->pts);
+        
         vp->pts = pts;
         vp->duration = duration;
         vp->pos = pos;
@@ -3409,6 +3412,89 @@ static int read_thread(void *arg)
         ffp_seek_to_l(ffp, (long)(ffp->seek_at_start));
     }
 
+    /********************reverse play begin*********************/
+    double key_pts_timems = ffp_get_duration_l(ffp);
+    int gop_size = 0;
+    int max_gop_size = 0;
+    int gop_sum = 0;
+    int average_gop_size = 0;
+    bool is_seeked_key_frame = true; //first read need set true value
+    double seek_time = 0;
+
+
+    ffp_seek_to_l(ffp,ffp_get_duration_l(ffp));
+
+    for (;;) {
+        pkt->flags = 0;
+        if (is->seek_req) {
+            int64_t seek_target = is->seek_pos;
+            int64_t seek_min    = is->seek_rel > 0 ? seek_target - is->seek_rel + 2: INT64_MIN;
+            int64_t seek_max    = is->seek_rel < 0 ? seek_target - is->seek_rel - 2: INT64_MAX;
+            ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
+            if (ret < 0) {
+                av_log(NULL, AV_LOG_ERROR,
+                       "%s: error while seeking\n", is->ic->filename);
+            } else {
+                if (is->video_stream >= 0) {
+                    if (ffp->node_vdec) {
+                        //ffpipenode_flush(ffp->node_vdec);
+                    }
+                    //packet_queue_flush(&is->videoq);
+                    //packet_queue_put(&is->videoq, &flush_pkt);
+                }
+            }
+            is->seek_req = 0;
+            is->eof = 0;
+        }
+
+        ret = av_read_frame(ic, pkt);
+
+        if (ret < 0) {
+            int eof_gop = 0;
+            if (ret == AVERROR_EOF ) {
+                av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen seek_time %llf\n", __FUNCTION__,__LINE__,seek_time);
+                ffp_seek_to_l(ffp, seek_time);
+                is_seeked_key_frame = true;
+            }
+            if (ret == AVERROR_EXIT) {
+                is->eof = 1;
+            }
+            continue;
+        } else {
+            is->eof = 0;
+        }
+
+        if (pkt->stream_index == is->video_stream) {
+            if (pkt->flags & AV_PKT_FLAG_KEY) {
+                if (is_seeked_key_frame) {//first I frame after seek, just read 
+                    key_pts_timems = pkt->pts * 1000.0f * av_q2d(is->video_st->time_base);
+                    seek_time = key_pts_timems - 10;
+                    gop_size = 1;
+                    av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen is_seek %d,flags 0x%08x size %d,pts %lld, ptstime %llf,max_gop_size %d\n", __FUNCTION__,__LINE__,is_seeked_key_frame,pkt->flags,pkt->size,pkt->pts,key_pts_timems,max_gop_size);
+                    is_seeked_key_frame = false;
+                } else { //read I frame in new gop after first I frame, need seek
+                    av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen is_seek %d,flags 0x%08x size %d,pts %lld, ptstime %llf,max_gop_size %d\n", __FUNCTION__,__LINE__,is_seeked_key_frame,pkt->flags,pkt->size,pkt->pts,key_pts_timems,max_gop_size);
+                    max_gop_size =  FFMAX(max_gop_size, gop_size);
+                    if (seek_time < 0 ) {
+                        av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen eos start %d\n", __FUNCTION__,__LINE__,key_pts_timems);
+                        is->eof = 1;
+                        av_packet_unref(pkt);
+                        break;
+                    } else {
+                        ffp_seek_to_l(ffp, seek_time);
+                        is_seeked_key_frame = true;
+                    }
+                }
+            } else {
+                gop_size++;
+                av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen no-key gopsize %d,flags 0x%08x size %d,pts %lld, ptstime %llf,keyptstime %llf,max_gop_size %d\n", __FUNCTION__,__LINE__,gop_size,pkt->flags,pkt->size,pkt->pts,pkt->pts * 1000.0f * av_q2d(is->video_st->time_base),key_pts_timems,max_gop_size);
+            }
+
+        }
+        av_packet_unref(pkt);
+    }
+    ffp_seek_to_l(ffp, 0);
+    /********************reverse play end  *********************/
     for (;;) {
         if (is->abort_request)
             break;
@@ -4531,7 +4617,7 @@ int ffp_seek_to_l(FFPlayer *ffp, long msec)
     // FIXME: 9 seek by bytes
     // FIXME: 9 seek out of range
     // FIXME: 9 seekable
-    av_log(ffp, AV_LOG_DEBUG, "stream_seek %"PRId64"(%d) + %"PRId64", \n", seek_pos, (int)msec, start_time);
+    av_log(ffp, AV_LOG_ERROR, "stream_seek %"PRId64"(%d) + %"PRId64", \n", seek_pos, (int)msec, start_time);
     stream_seek(is, seek_pos, 0, 0);
     return 0;
 }
