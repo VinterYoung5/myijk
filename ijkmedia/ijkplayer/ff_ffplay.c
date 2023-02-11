@@ -571,7 +571,7 @@ fail0:
 
 static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSubtitle *sub) {
     int ret = AVERROR(EAGAIN);
-    ffp->is->cur_video_mode = ffp->is->set_video_mode;
+    ffp->is->cur_frame_type_mode = ffp->is->set_frame_type_mode;
     for (;;) {
         AVPacket pkt;
 
@@ -590,6 +590,7 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                             } else if (!ffp->decoder_reorder_pts) {
                                 frame->pts = frame->pkt_dts;
                             }
+                            //av_log(NULL, AV_LOG_ERROR, "Receive_frame ret %d, pts %lld,ppts %lld, decoder_reorder_pts %d\n",ret,frame->pts,frame->pkt_dts,ffp->decoder_reorder_pts);
                         }
                         break;
                     case AVMEDIA_TYPE_AUDIO:
@@ -630,16 +631,17 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                     if (packet_queue_get_or_buffering(ffp, d->queue, &pkt, &d->pkt_serial, &d->finished) < 0)
                         return -1;
                 }
-                if (pkt.flags & AVFMT_FLAG_VIDEO_FRAME_I) {
-                    ffp->is->cur_video_mode = ffp->is->set_video_mode;
+                if (pkt.flags & AV_PICTURE_TYPE_I || pkt.flags & AV_PKT_FLAG_KEY) {
+                    ffp->is->cur_frame_type_mode = ffp->is->set_frame_type_mode;
                 }
-                av_log(NULL, AV_LOG_ERROR, "%s %d.flags 0x%08x,pts %lld,size %d,mode 0x%08x mode 0x%08x,speed %llf\n",__FUNCTION__,__LINE__,pkt.flags,pkt.pts,pkt.size,ffp->is->set_video_mode,ffp->is->cur_video_mode,ffp->is->vidclk.speed);
-                if (pkt.flags & ffp->is->cur_video_mode) {
+                if (pkt.flags & ffp->is->cur_frame_type_mode ||  ffp->is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
                     find_target_frame = true;
                 } else {
                     av_packet_unref(&pkt);
                     find_target_frame = false;
                 }
+                av_log(NULL, AV_LOG_ERROR, "%s %d.mod1 0x%08x, mod2 0x%08x ,flags 0x%08x,pts %llf,size %d,mode 0x%08x mode 0x%08x,speed %llf\n",__FUNCTION__,__LINE__,ffp->is->cur_frame_type_mode,ffp->is->set_frame_type_mode,pkt.flags,pkt.pts * 1000.0f * av_q2d(ffp->is->video_st->time_base),pkt.size,ffp->is->set_frame_type_mode,ffp->is->cur_frame_type_mode,ffp->is->vidclk.speed);
+
             } while (d->queue->serial != d->pkt_serial || !find_target_frame);
         } else {
             do {
@@ -653,9 +655,9 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                         return -1;
                 }
             } while (d->queue->serial != d->pkt_serial);
-            av_log(NULL, AV_LOG_ERROR, "%s %d.flags 0x%08x,pts %lld,size %d,mode 0x%08x mode 0x%08x,speed %llf\n",__FUNCTION__,__LINE__,pkt.flags,pkt.pts,pkt.size,ffp->is->set_video_mode,ffp->is->cur_video_mode,ffp->is->vidclk.speed);
+            av_log(NULL, AV_LOG_ERROR, "%s %d.flags 0x%08x,pts %lld,size %d,mode 0x%08x mode 0x%08x,speed %llf\n",__FUNCTION__,__LINE__,pkt.flags,pkt.pts,pkt.size,ffp->is->set_frame_type_mode,ffp->is->cur_frame_type_mode,ffp->is->vidclk.speed);
 
-            if (!(ffp->is->cur_video_mode & AVFMT_FLAG_VIDEO_FRAME_B)) { //video drop frame mode, disable audio
+            if (!(ffp->is->cur_frame_type_mode & AVFMT_FLAG_VIDEO_FRAME_B)) { //video drop frame mode, disable audio
                 av_packet_unref(&pkt);
                 continue;
             }
@@ -913,7 +915,6 @@ static void video_image_display2(FFPlayer *ffp)
 
     vp = frame_queue_peek_last(&is->pictq);
 
-    av_log(NULL, AV_LOG_FATAL, "%s %d.yangwen vppts %llf,type %d\n",__FUNCTION__,__LINE__,vp->pts,vp->pict_type);
     if (vp->bmp) {
         if (is->subtitle_st) {
             if (frame_queue_nb_remaining(&is->subpq) > 0) {
@@ -1711,7 +1712,7 @@ static int queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double d
         /* update the bitmap content */
         SDL_VoutUnlockYUVOverlay(vp->bmp);
         vp->pict_type = src_frame->pict_type;
-        av_log(NULL, AV_LOG_FATAL, "%s %d.yangwen type %d, vp type %d,pts %lld\n",__FUNCTION__,__LINE__,src_frame->pict_type,vp->pict_type,src_frame->pts);
+        //av_log(NULL, AV_LOG_FATAL, "%s %d.yangwen type %d, vp type %d,pts %lld\n",__FUNCTION__,__LINE__,src_frame->pict_type,vp->pict_type,src_frame->pts);
         
         vp->pts = pts;
         vp->duration = duration;
@@ -3144,6 +3145,8 @@ static int read_thread(void *arg)
     is->last_audio_stream = is->audio_stream = -1;
     is->last_subtitle_stream = is->subtitle_stream = -1;
     is->eof = 0;
+    //for test reverse play
+    ffp->audio_disable = true;
 
     ic = avformat_alloc_context();
     if (!ic) {
@@ -3420,11 +3423,20 @@ static int read_thread(void *arg)
     int average_gop_size = 0;
     bool is_seeked_key_frame = true; //first read need set true value
     double seek_time = 0;
-
+    bool  is_metadata_set = false;
 
     ffp_seek_to_l(ffp,ffp_get_duration_l(ffp));
+    //ffp_seek_to_l(ffp,0);
 
     for (;;) {
+        if (is->eof == 1) {
+            /* wait 10 ms */
+            SDL_LockMutex(wait_mutex);
+            SDL_CondWaitTimeout(is->continue_read_thread, wait_mutex, 100);
+            SDL_UnlockMutex(wait_mutex);
+            continue;
+        }
+
         pkt->flags = 0;
         if (is->seek_req) {
             int64_t seek_target = is->seek_pos;
@@ -3447,6 +3459,27 @@ static int read_thread(void *arg)
             is->eof = 0;
         }
 
+        stream_toggle_pause_l(ffp, 0);         
+
+         /* if the queue are full, no need to read more */
+        if (ffp->infinite_buffer<1 && !is->seek_req &&
+#ifdef FFP_MERGE
+              (is->audioq.size + is->videoq.size + is->subtitleq.size > MAX_QUEUE_SIZE
+#else
+              (is->audioq.size + is->videoq.size + is->subtitleq.size > ffp->dcc.max_buffer_size
+#endif
+            || (   stream_has_enough_packets(is->audio_st, is->audio_stream, &is->audioq, MIN_FRAMES)
+                && stream_has_enough_packets(is->video_st, is->video_stream, &is->videoq, MIN_FRAMES)
+                && stream_has_enough_packets(is->subtitle_st, is->subtitle_stream, &is->subtitleq, MIN_FRAMES)))) {
+            if (!is->eof) {
+                ffp_toggle_buffering(ffp, 0);
+            }
+            /* wait 10 ms */
+            SDL_LockMutex(wait_mutex);
+            SDL_CondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
+            SDL_UnlockMutex(wait_mutex);
+            continue;
+        }
         ret = av_read_frame(ic, pkt);
 
         if (ret < 0) {
@@ -3465,7 +3498,27 @@ static int read_thread(void *arg)
         }
 
         if (pkt->stream_index == is->video_stream) {
+
             if (pkt->flags & AV_PKT_FLAG_KEY) {
+                if (false && !is_metadata_set) { //extradata
+                    int extradata_size = ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->extradata_size;
+                    if (extradata_size > 0){
+                        uint8_t *buf = av_malloc(extradata_size);;
+                        if (!buf){
+                            av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen extradata_size %d \n", __FUNCTION__,__LINE__,ret);
+                            //return ret;
+                        }
+                        memcpy(buf,ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->extradata,extradata_size);
+                        pkt->data = buf;
+                        pkt->size = extradata_size;
+                        packet_queue_put(&is->videoq, pkt);
+                        is_metadata_set =  true;
+                        continue;
+                    } else {
+                        av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen extradata_size %d \n", __FUNCTION__,__LINE__,extradata_size);
+                    }
+                }
+
                 if (is_seeked_key_frame) {//first I frame after seek, just read 
                     key_pts_timems = pkt->pts * 1000.0f * av_q2d(is->video_st->time_base);
                     seek_time = key_pts_timems - 10;
@@ -3479,7 +3532,7 @@ static int read_thread(void *arg)
                         av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen eos start %d\n", __FUNCTION__,__LINE__,key_pts_timems);
                         is->eof = 1;
                         av_packet_unref(pkt);
-                        break;
+                        //break;
                     } else {
                         ffp_seek_to_l(ffp, seek_time);
                         is_seeked_key_frame = true;
@@ -3490,12 +3543,28 @@ static int read_thread(void *arg)
                 av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen no-key gopsize %d,flags 0x%08x size %d,pts %lld, ptstime %llf,keyptstime %llf,max_gop_size %d\n", __FUNCTION__,__LINE__,gop_size,pkt->flags,pkt->size,pkt->pts,pkt->pts * 1000.0f * av_q2d(is->video_st->time_base),key_pts_timems,max_gop_size);
             }
 
+            /* check if packet is in play range specified by user, then queue, otherwise discard */
+            stream_start_time = ic->streams[pkt->stream_index]->start_time;
+            pkt_ts = pkt->pts == AV_NOPTS_VALUE ? pkt->dts : pkt->pts;
+            pkt_in_play_range = ffp->duration == AV_NOPTS_VALUE ||
+                    (pkt_ts - (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0)) *
+                    av_q2d(ic->streams[pkt->stream_index]->time_base) -
+                    (double)(ffp->start_time != AV_NOPTS_VALUE ? ffp->start_time : 0) / 1000000
+                    <= ((double)ffp->duration / 1000000);
+
+            if (pkt->stream_index == is->video_stream && pkt_in_play_range
+                       && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
+                //pkt->flags |= AVFMT_FLAG_VIDEO_FRAME_I |AVFMT_FLAG_VIDEO_FRAME_P|AVFMT_FLAG_VIDEO_FRAME_B;
+                av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen packet_queue_put,flags 0x%08x size %d,pts %lld\n", __FUNCTION__,__LINE__,pkt->flags,pkt->size,pkt->pts);
+                packet_queue_put(&is->videoq, pkt);
+            }
         }
-        av_packet_unref(pkt);
+        //av_packet_unref(pkt);
     }
     ffp_seek_to_l(ffp, 0);
     /********************reverse play end  *********************/
     for (;;) {
+        break;
         if (is->abort_request)
             break;
 #ifdef FFP_MERGE
@@ -3573,7 +3642,7 @@ static int read_thread(void *arg)
                 if (ffp->packet_buffering)
                     is->buffering_on = 1;
                 ffp->auto_resume = 0;
-                stream_update_pause_l(ffp);
+                    stream_update_pause_l(ffp);
             }
             if (is->pause_req)
                 step_to_next_frame_l(ffp);
@@ -3920,8 +3989,8 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
         }
     }
     is->initialized_decoder = 1;
-    is->set_video_mode  = AVFMT_FLAG_VIDEO_FRAME_I | AVFMT_FLAG_VIDEO_FRAME_P | AVFMT_FLAG_VIDEO_FRAME_B;
-
+    is->set_frame_type_mode  = AVFMT_FLAG_VIDEO_FRAME_I | AVFMT_FLAG_VIDEO_FRAME_P | AVFMT_FLAG_VIDEO_FRAME_B;
+    is->video_forword_reverse_mode = FFP_VIDEO_STEP_NEXT_MODE_FORWORD;
     return is;
 fail:
     is->initialized_decoder = 1;
@@ -4617,7 +4686,7 @@ int ffp_seek_to_l(FFPlayer *ffp, long msec)
     // FIXME: 9 seek by bytes
     // FIXME: 9 seek out of range
     // FIXME: 9 seekable
-    av_log(ffp, AV_LOG_ERROR, "stream_seek %"PRId64"(%d) + %"PRId64", \n", seek_pos, (int)msec, start_time);
+    av_log(ffp, AV_LOG_DEBUG, "stream_seek %"PRId64"(%d) + %"PRId64", \n", seek_pos, (int)msec, start_time);
     stream_seek(is, seek_pos, 0, 0);
     return 0;
 }
@@ -5008,13 +5077,13 @@ void ffp_set_playback_rate(FFPlayer *ffp, float rate)
     ffp->pf_playback_rate_changed = 1;
 
     if (rate >= 16.0f) { //16.0 32.0, video play mode I
-        ffp->is->set_video_mode  = AVFMT_FLAG_VIDEO_FRAME_I;
+        ffp->is->set_frame_type_mode  = AVFMT_FLAG_VIDEO_FRAME_I;
         ffp->av_sync_type = AV_SYNC_VIDEO_MASTER;
     } else if(rate >= 4.0f) {  //4.0 8.0, video play mode I P
-        ffp->is->set_video_mode  = AVFMT_FLAG_VIDEO_FRAME_I | AVFMT_FLAG_VIDEO_FRAME_P;
+        ffp->is->set_frame_type_mode  = AVFMT_FLAG_VIDEO_FRAME_I | AVFMT_FLAG_VIDEO_FRAME_P;
         ffp->av_sync_type = AV_SYNC_VIDEO_MASTER;
     } else { //<4.0 , video play mode I P B
-        ffp->is->set_video_mode  = AVFMT_FLAG_VIDEO_FRAME_I | AVFMT_FLAG_VIDEO_FRAME_P | AVFMT_FLAG_VIDEO_FRAME_B;
+        ffp->is->set_frame_type_mode  = AVFMT_FLAG_VIDEO_FRAME_I | AVFMT_FLAG_VIDEO_FRAME_P | AVFMT_FLAG_VIDEO_FRAME_B;
         ffp->av_sync_type = AV_SYNC_AUDIO_MASTER;
     }
     ffp->is->av_sync_type  = ffp->av_sync_type;

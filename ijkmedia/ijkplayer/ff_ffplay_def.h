@@ -180,7 +180,7 @@ typedef struct PacketQueue {
 } PacketQueue;
 
 // #define VIDEO_PICTURE_QUEUE_SIZE 3
-#define VIDEO_PICTURE_QUEUE_SIZE_MIN        (3)
+#define VIDEO_PICTURE_QUEUE_SIZE_MIN        (5)
 #define VIDEO_PICTURE_QUEUE_SIZE_MAX        (16)
 #define VIDEO_PICTURE_QUEUE_SIZE_DEFAULT    (VIDEO_PICTURE_QUEUE_SIZE_MIN)
 #define SUBPICTURE_QUEUE_SIZE 16
@@ -419,8 +419,9 @@ typedef struct VideoState {
     SDL_cond  *audio_accurate_seek_cond;
     volatile int initialized_decoder;
     int seek_buffering;
-    int set_video_mode;
-    int cur_video_mode;
+    int set_frame_type_mode;
+    int cur_frame_type_mode;
+    int video_forword_reverse_mode;
 } VideoState;
 
 /* options specified by the user */
