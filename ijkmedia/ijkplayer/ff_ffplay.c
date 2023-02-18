@@ -590,8 +590,9 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                             } else if (!ffp->decoder_reorder_pts) {
                                 frame->pts = frame->pkt_dts;
                             }
-                            //av_log(NULL, AV_LOG_ERROR, "Receive_frame ret %d, pts %lld,ppts %lld, decoder_reorder_pts %d\n",ret,frame->pts,frame->pkt_dts,ffp->decoder_reorder_pts);
+                            //av_log(NULL, AV_LOG_ERROR, "Receive_frame ret %d,pict_type %d pts %lld,ppts %lld, flags 0x%08x\n",ret,frame->pict_type,frame->pts,frame->pkt_dts,frame->flags);
                         }
+
                         break;
                     case AVMEDIA_TYPE_AUDIO:
                         ret = avcodec_receive_frame(d->avctx, frame);
@@ -613,7 +614,8 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                 if (ret == AVERROR_EOF) {
                     d->finished = d->pkt_serial;
                     avcodec_flush_buffers(d->avctx);
-                    return 0;
+                    //return 0;
+                    return AVERROR_EOF;
                 }
                 if (ret >= 0)
                     return 1;
@@ -634,7 +636,7 @@ static int decoder_decode_frame(FFPlayer *ffp, Decoder *d, AVFrame *frame, AVSub
                 if (pkt.flags & AV_PICTURE_TYPE_I || pkt.flags & AV_PKT_FLAG_KEY) {
                     ffp->is->cur_frame_type_mode = ffp->is->set_frame_type_mode;
                 }
-                if (pkt.flags & ffp->is->cur_frame_type_mode ||  ffp->is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
+                if (pkt.flags & ffp->is->cur_frame_type_mode ||  ffp->is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE) {
                     find_target_frame = true;
                 } else {
                     av_packet_unref(&pkt);
@@ -835,7 +837,122 @@ static int64_t frame_queue_last_pos(FrameQueue *f)
         return -1;
 }
 #endif
+static void frame_cachebufferqueue_signal(FrameCacheBufferQueue *f)
+{
+    SDL_LockMutex(f->mutex);
+    SDL_CondSignal(f->cond);
+    SDL_UnlockMutex(f->mutex);
+}
 
+static int frame_cachebufferqueue_init(FrameCacheBufferQueue *f)
+{
+    int i;
+    memset(f, 0, sizeof(FrameCacheBufferQueue));
+    if (!(f->mutex = SDL_CreateMutex())) {
+        av_log(NULL, AV_LOG_FATAL, "SDL_CreateMutex(): %s\n", SDL_GetError());
+        return AVERROR(ENOMEM);
+    }
+    if (!(f->cond = SDL_CreateCond())) {
+        av_log(NULL, AV_LOG_FATAL, "SDL_CreateCond(): %s\n", SDL_GetError());
+        return AVERROR(ENOMEM);
+    }
+    f->max_size = VIDEO_PICTURE_QUEUE_SIZE_REVERSE;
+    f->size = 0;
+    f->rindex = 0;
+    f->windex = 0;
+    for (i = 0; i < f->max_size; i++)
+        if (!(f->frame[i] = av_frame_alloc()))
+            return AVERROR(ENOMEM);
+    return 0;
+}
+
+static int frame_cachebufferqueue_destory(FrameCacheBufferQueue *f)
+{
+    int i;
+    for (i = 0; i < f->max_size; i++) {
+        av_frame_free(f->frame[i]);
+    }
+    SDL_DestroyMutex(f->mutex);
+    SDL_DestroyCond(f->cond);
+
+}
+
+static int frame_cachebufferqueue_write(FrameCacheBufferQueue *f, AVFrame *avf, int r_mode)
+{
+    if (!avf)
+        return -1;
+    SDL_LockMutex(f->mutex);
+    memcpy(f->frame[f->windex],avf,sizeof(AVFrame));
+    f->size++;
+    f->windex++;
+    if (r_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE)
+        f->rindex = f->windex - 1;
+    else
+        f->rindex = 0;
+    SDL_CondSignal(f->cond);
+    SDL_UnlockMutex(f->mutex);
+    return 0;
+}
+
+static int frame_cachebufferqueue_writable(FrameCacheBufferQueue *f)
+{
+    int ret = 0;
+    SDL_LockMutex(f->mutex);
+    if (f->size < f->max_size)
+        ret = 1;
+    else
+        ret = 0;
+    SDL_CondSignal(f->cond);
+    SDL_UnlockMutex(f->mutex);
+    return ret;
+}
+
+static int frame_cachebufferqueue_read(FrameCacheBufferQueue *f, AVFrame *avf, int r_mode)
+{
+    int ret = 0;
+    SDL_LockMutex(f->mutex);
+    if (( f->rindex < 0) || (f->rindex > f->size))
+        ret = 0;
+    else
+        ret = 1;
+        memcpy(avf,f->frame[f->rindex],sizeof(AVFrame));
+        if (r_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD)
+            f->rindex++;
+        else 
+            f->rindex--;
+    SDL_CondSignal(f->cond);
+    SDL_UnlockMutex(f->mutex);
+    return ret;
+}
+
+static int frame_cachebufferqueue_readable(FrameCacheBufferQueue *f, int r_mode)
+{
+    int ret = 0;
+    SDL_LockMutex(f->mutex);
+    if (f->size > 0 && 
+            ((r_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE &&  f->rindex >= 0) || 
+            (r_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD &&  f->rindex < f->size)))
+        ret = 1;
+    else
+        ret = 0;
+    SDL_CondSignal(f->cond);
+    SDL_UnlockMutex(f->mutex);
+    return ret;
+}
+
+static void frame_cachebufferqueue_flush(FrameCacheBufferQueue *f)
+{
+    int i = 0;
+    SDL_LockMutex(f->mutex);
+    f->size = 0;
+    f->rindex = -1;
+    f->windex = 0;
+    for (i = 0; i < f->max_size; i++)
+        memset(f->frame[i], 0, sizeof(AVFrame));
+
+    SDL_UnlockMutex(f->mutex);
+    return;
+}
 static void decoder_abort(Decoder *d, FrameQueue *fq)
 {
     packet_queue_abort(d->queue);
@@ -946,6 +1063,8 @@ static void video_image_display2(FFPlayer *ffp)
                 SDL_Delay(20);
             }
         }
+        av_log(NULL, AV_LOG_ERROR, "%s %d,pts %llf will display\n",__FUNCTION__,__LINE__,vp->pts);
+        
         SDL_VoutDisplayYUVOverlay(ffp->vout, vp->bmp);
         ffp->stat.vfps = SDL_SpeedSamplerAdd(&ffp->vfps_sampler, FFP_SHOW_VFPS_FFPLAY, "vfps[ffplay]");
         if (!ffp->first_video_frame_rendered) {
@@ -1002,6 +1121,7 @@ static void stream_component_close(FFPlayer *ffp, int stream_index)
         break;
     case AVMEDIA_TYPE_VIDEO:
         decoder_abort(&is->viddec, &is->pictq);
+        //decoder_abort(&is->viddec, &is->pictq_reverse);
         decoder_destroy(&is->viddec);
         break;
     case AVMEDIA_TYPE_SUBTITLE:
@@ -1062,6 +1182,8 @@ static void stream_close(FFPlayer *ffp)
     frame_queue_destory(&is->pictq);
     frame_queue_destory(&is->sampq);
     frame_queue_destory(&is->subpq);
+    frame_cachebufferqueue_destory(&is->pictq_rev);
+
     SDL_DestroyCond(is->audio_accurate_seek_cond);
     SDL_DestroyCond(is->video_accurate_seek_cond);
     SDL_DestroyCond(is->continue_read_thread);
@@ -1323,6 +1445,8 @@ static double compute_target_delay(FFPlayer *ffp, double delay, VideoState *is)
         ffp->stat.avdelay = delay;
         ffp->stat.avdiff  = diff;
     }
+    av_log(NULL, AV_LOG_ERROR, "video: delay=%0.3f A-V=%f\n", delay, -diff);
+
 #ifdef FFP_SHOW_AUDIO_DELAY
     av_log(NULL, AV_LOG_TRACE, "video: delay=%0.3f A-V=%f\n",
             delay, -diff);
@@ -1397,6 +1521,8 @@ retry:
             /* compute nominal last_duration */
             last_duration = vp_duration(is, lastvp, vp);
             delay = compute_target_delay(ffp, last_duration, is);
+            av_log(NULL, AV_LOG_FATAL,
+                           "last_duration %llf, delay %llf\n", last_duration, delay );
 
             time= av_gettime_relative()/1000000.0;
             if (isnan(is->frame_timer) || time < is->frame_timer)
@@ -1414,8 +1540,10 @@ retry:
             if (!isnan(vp->pts))
                 update_video_pts(is, vp->pts, vp->pos, vp->serial);
             SDL_UnlockMutex(is->pictq.mutex);
+            av_log(NULL, AV_LOG_FATAL,"vp->pts  %llf,  vp->pos  %lld, vp->serial %d, \n", vp->pts,  vp->pos, vp->serial );
 
-            if (frame_queue_nb_remaining(&is->pictq) > 1) {
+            //too fast to comnsume frame, jump this module
+            if (false && frame_queue_nb_remaining(&is->pictq) > 1) {
                 Frame *nextvp = frame_queue_peek_next(&is->pictq);
                 duration = vp_duration(is, vp, nextvp);
                 if(!is->step && (ffp->framedrop > 0 || (ffp->framedrop && get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration) {
@@ -1689,7 +1817,6 @@ static int queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double d
         if (is->videoq.abort_request)
             return -1;
     }
-
     /* if the frame is not skipped, then display it */
     if (vp->bmp) {
         /* get a pointer on the bitmap */
@@ -1712,8 +1839,8 @@ static int queue_picture(FFPlayer *ffp, AVFrame *src_frame, double pts, double d
         /* update the bitmap content */
         SDL_VoutUnlockYUVOverlay(vp->bmp);
         vp->pict_type = src_frame->pict_type;
-        //av_log(NULL, AV_LOG_FATAL, "%s %d.yangwen type %d, vp type %d,pts %lld\n",__FUNCTION__,__LINE__,src_frame->pict_type,vp->pict_type,src_frame->pts);
-        
+        //av_log(NULL, AV_LOG_FATAL, "%s %d.yangwen src type %d,pts %lld,format %d,width %d\n",__FUNCTION__,__LINE__,src_frame->pict_type,src_frame->pts,src_frame->format,src_frame->width);
+
         vp->pts = pts;
         vp->duration = duration;
         vp->pos = pos;
@@ -1742,9 +1869,13 @@ static int get_video_frame(FFPlayer *ffp, AVFrame *frame)
     int got_picture;
 
     ffp_video_statistic_l(ffp);
-    if ((got_picture = decoder_decode_frame(ffp, &is->viddec, frame, NULL)) < 0)
-        return -1;
-
+    got_picture = decoder_decode_frame(ffp, &is->viddec, frame, NULL);
+    if (got_picture < 0) {
+        if (got_picture == AVERROR_EOF)
+            return AVERROR_EOF;
+        else
+            return -1;
+    }
     if (got_picture) {
         double dpts = NAN;
 
@@ -1769,6 +1900,7 @@ static int get_video_frame(FFPlayer *ffp, AVFrame *frame)
                         ffp->stat.drop_frame_count++;
                         ffp->stat.drop_frame_rate = (float)(ffp->stat.drop_frame_count) / (float)(ffp->stat.decode_frame_count);
                         av_frame_unref(frame);
+                        //av_log(NULL, AV_LOG_FATAL, "%s %d.yangwen drop frame pts %lld,dropcnt %d\n",__FUNCTION__,__LINE__,frame->pts,ffp->stat.drop_frame_count);
                         got_picture = 0;
                     }
                 }
@@ -2228,6 +2360,7 @@ static int ffplay_video_thread(void *arg)
     FFPlayer *ffp = arg;
     VideoState *is = ffp->is;
     AVFrame *frame = av_frame_alloc();
+    AVFrame *frame_rev = av_frame_alloc();
     double pts;
     double duration;
     int ret;
@@ -2237,7 +2370,15 @@ static int ffplay_video_thread(void *arg)
     int64_t last_dst_pts = -1;
     int retry_convert_image = 0;
     int convert_frame_count = 0;
+    bool frame_consumed_reverse = true;
+    bool frame_consumed_display = true;
 
+    bool is_key_frame = false;
+    bool find_new_gop = false;
+    Frame *vp = NULL;
+    Frame *vp2 = NULL;
+    double key_frame_pts = 0.0f;
+    int64_t key_pts = 0;
 #if CONFIG_AVFILTER
     AVFilterGraph *graph = avfilter_graph_alloc();
     AVFilterContext *filt_out = NULL, *filt_in = NULL;
@@ -2262,7 +2403,9 @@ static int ffplay_video_thread(void *arg)
         return AVERROR(ENOMEM);
     }
 
+if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
     for (;;) {
+
         ret = get_video_frame(ffp, frame);
         if (ret < 0)
             goto the_end;
@@ -2368,6 +2511,7 @@ static int ffplay_video_thread(void *arg)
 #endif
             duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+            av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. will queue_picture pts %llf,org_pts %llf,duration %llf,pict_type %d flag 0x%08x\n",__FUNCTION__,__LINE__,pts,frame->pts * av_q2d(tb),duration,frame->pict_type,frame->flags);
             ret = queue_picture(ffp, frame, pts, duration, frame->pkt_pos, is->viddec.pkt_serial);
             av_frame_unref(frame);
 #if CONFIG_AVFILTER
@@ -2376,7 +2520,80 @@ static int ffplay_video_thread(void *arg)
 
         if (ret < 0)
             goto the_end;
+    } 
+
+} else if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE) {
+
+    int mode = FFP_VIDEO_STEP_NEXT_MODE_REVERSE;
+    pts = 0.0f;
+    bool find_eof = false;
+    for (;;) {
+
+        if (!find_eof && frame_consumed_reverse && !find_new_gop) {
+            ret = get_video_frame(ffp, frame);
+
+            if (ret < 0) {
+                if (ret == AVERROR_EOF){
+                    find_eof = true;
+                    av_frame_unref(frame);
+                }
+                else 
+                    goto the_end;
+            }
+            if (!ret)
+                continue;
+            frame_consumed_reverse = false;
+            //duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+            //pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+            if (is_key_frame = frame->pict_type == AV_PICTURE_TYPE_I) {
+                //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. find new  I frame,pts %llf,pts %lld,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__, frame->pts * av_q2d(tb),frame->pts,frame->pict_type,frame->flags);
+                key_pts = frame->pts;
+            } else {
+                //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. find new BP frame,pts %llf,pts %lld,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__, frame->pts * av_q2d(tb),frame->pts,frame->pict_type,frame->flags);
+            }
+            //TODO:pts how to deal with
+        }
+        //reverse queue remain frames and come up the I frame, it means new gops;
+        find_new_gop = is_key_frame && (frame_cachebufferqueue_readable(&is->pictq_rev, mode)) || find_eof;//current gop have not been consumed, donot queue push
+
+        if (!frame_consumed_reverse && !find_new_gop) { //new gop need wait to deal until olders consumed
+            if (!(frame_cachebufferqueue_writable(&is->pictq_rev))) {//reverse queue is full
+                //discard longlong gop frame;
+                //av_usleep(10 * 1000);
+                //continue;
+                frame_consumed_reverse = true;
+                find_new_gop = true;
+                //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will frame_cachebufferqueue_writable faild,reverse queue is full\n",__FUNCTION__,__LINE__);
+                continue;
+            } else {
+                //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will frame_cachebufferqueue_write  pts %llf pts %lld,pict_type %d\n",__FUNCTION__,__LINE__,frame->pts * av_q2d(tb),frame->pts,frame->pict_type);
+                frame_cachebufferqueue_write(&is->pictq_rev,frame,mode);
+                frame_consumed_reverse = true;
+            }
+        }
+
+        if (find_new_gop){ //
+            if ((frame_cachebufferqueue_readable(&is->pictq_rev, mode)) && frame_cachebufferqueue_read(&is->pictq_rev,frame_rev,mode)){
+                duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+                pts = (frame_rev->pts == AV_NOPTS_VALUE) ? NAN : frame_rev->pts * av_q2d(tb);
+                //pts = pts + duration;
+                //SDL_Delay(100);
+                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. will queue_picture pts %llf,org_pts %llf,duration %llf,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,pts,frame_rev->pts * av_q2d(tb),duration,frame_rev->pict_type,frame->flags);
+                ret = queue_picture(ffp, frame_rev, pts, duration, frame_rev->pkt_pos, is->viddec.pkt_serial);
+                //av_frame_unref(frame_rev);
+            } else {
+                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. will frame_cachebufferqueue_read faild\n",__FUNCTION__,__LINE__);
+            }
+
+            if (!(frame_cachebufferqueue_readable(&is->pictq_rev, mode))) {//reverse queue is empty
+                //av_usleep(10 * 1000);
+                find_new_gop = false;
+                frame_cachebufferqueue_flush(&is->pictq_rev);
+                //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. frame_cachebufferqueue_flush\n",__FUNCTION__,__LINE__);
+            }
+        }
     }
+}
  the_end:
 #if CONFIG_AVFILTER
     avfilter_graph_free(&graph);
@@ -3133,6 +3350,7 @@ static int read_thread(void *arg)
     bool is_annexb = false;
     bool set_annexb_filter = false;
     double set_speed = 1.0f;
+    
 
     if (!wait_mutex) {
         av_log(NULL, AV_LOG_FATAL, "SDL_CreateMutex(): %s\n", SDL_GetError());
@@ -3416,6 +3634,7 @@ static int read_thread(void *arg)
     }
 
     /********************reverse play begin*********************/
+    int64_t last_pts = 0;
     double key_pts_timems = ffp_get_duration_l(ffp);
     int gop_size = 0;
     int max_gop_size = 0;
@@ -3424,11 +3643,19 @@ static int read_thread(void *arg)
     bool is_seeked_key_frame = true; //first read need set true value
     double seek_time = 0;
     bool  is_metadata_set = false;
+    double duration;
+    int64_t delta;
 
-    ffp_seek_to_l(ffp,ffp_get_duration_l(ffp));
+    AVRational frame_rate = av_guess_frame_rate(is->ic, is->video_st, NULL);
+    duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+    delta = duration /  av_q2d(is->video_st->time_base);
+    av_log(NULL, AV_LOG_ERROR, "yangwen dur %llf delta %lld\n", duration,delta);
+ffp_seek_to_l(ffp,ffp_get_duration_l(ffp));
     //ffp_seek_to_l(ffp,0);
+    int read_eof = 0;
 
     for (;;) {
+
         if (is->eof == 1) {
             /* wait 10 ms */
             SDL_LockMutex(wait_mutex);
@@ -3492,14 +3719,26 @@ static int read_thread(void *arg)
             if (ret == AVERROR_EXIT) {
                 is->eof = 1;
             }
+            
+            if (read_eof) {
+                av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen pb_eof\n", __FUNCTION__,__LINE__);
+                if (is->video_stream >= 0)
+                    packet_queue_put_nullpacket(&is->videoq, is->video_stream);
+                if (is->audio_stream >= 0)
+                    packet_queue_put_nullpacket(&is->audioq, is->audio_stream);
+                if (is->subtitle_stream >= 0)
+                    packet_queue_put_nullpacket(&is->subtitleq, is->subtitle_stream);
+                is->eof = 1;
+            }
             continue;
         } else {
             is->eof = 0;
         }
 
         if (pkt->stream_index == is->video_stream) {
-
+            
             if (pkt->flags & AV_PKT_FLAG_KEY) {
+
                 if (false && !is_metadata_set) { //extradata
                     int extradata_size = ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->extradata_size;
                     if (extradata_size > 0){
@@ -3511,6 +3750,7 @@ static int read_thread(void *arg)
                         memcpy(buf,ic->streams[st_index[AVMEDIA_TYPE_VIDEO]]->codecpar->extradata,extradata_size);
                         pkt->data = buf;
                         pkt->size = extradata_size;
+                        av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen packet_queue_put,flags 0x%08x size %d,pts %lld\n", __FUNCTION__,__LINE__,pkt->flags,pkt->size,pkt->pts);
                         packet_queue_put(&is->videoq, pkt);
                         is_metadata_set =  true;
                         continue;
@@ -3525,17 +3765,18 @@ static int read_thread(void *arg)
                     gop_size = 1;
                     av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen is_seek %d,flags 0x%08x size %d,pts %lld, ptstime %llf,max_gop_size %d\n", __FUNCTION__,__LINE__,is_seeked_key_frame,pkt->flags,pkt->size,pkt->pts,key_pts_timems,max_gop_size);
                     is_seeked_key_frame = false;
-                } else { //read I frame in new gop after first I frame, need seek
+                } else { //read I frame in new gop after first I frame, need drop it and seek
                     av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen is_seek %d,flags 0x%08x size %d,pts %lld, ptstime %llf,max_gop_size %d\n", __FUNCTION__,__LINE__,is_seeked_key_frame,pkt->flags,pkt->size,pkt->pts,key_pts_timems,max_gop_size);
                     max_gop_size =  FFMAX(max_gop_size, gop_size);
                     if (seek_time < 0 ) {
                         av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen eos start %d\n", __FUNCTION__,__LINE__,key_pts_timems);
-                        is->eof = 1;
+                        read_eof = 1;
                         av_packet_unref(pkt);
-                        //break;
                     } else {
                         ffp_seek_to_l(ffp, seek_time);
                         is_seeked_key_frame = true;
+                        av_packet_unref(pkt);
+                        continue;
                     }
                 }
             } else {
@@ -3552,10 +3793,16 @@ static int read_thread(void *arg)
                     (double)(ffp->start_time != AV_NOPTS_VALUE ? ffp->start_time : 0) / 1000000
                     <= ((double)ffp->duration / 1000000);
 
-            if (pkt->stream_index == is->video_stream && pkt_in_play_range
-                       && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
-                //pkt->flags |= AVFMT_FLAG_VIDEO_FRAME_I |AVFMT_FLAG_VIDEO_FRAME_P|AVFMT_FLAG_VIDEO_FRAME_B;
-                av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen packet_queue_put,flags 0x%08x size %d,pts %lld\n", __FUNCTION__,__LINE__,pkt->flags,pkt->size,pkt->pts);
+            if (pkt_in_play_range && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
+//                if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE)
+//                    pkt->flags |= AVFMT_FLAG_VIDEO_FRAME_I |AVFMT_FLAG_VIDEO_FRAME_P|AVFMT_FLAG_VIDEO_FRAME_B;
+                
+
+                if (last_pts == pkt->pts)
+                    pkt->pts = pkt->pts + delta/2;
+                av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen packet_queue_put,flags 0x%08x size %d,pts %lld,last_pts %lld\n", __FUNCTION__,__LINE__,pkt->flags,pkt->size,pkt->pts,last_pts);
+                last_pts = pkt->pts;
+
                 packet_queue_put(&is->videoq, pkt);
             }
         }
@@ -3564,7 +3811,7 @@ static int read_thread(void *arg)
     ffp_seek_to_l(ffp, 0);
     /********************reverse play end  *********************/
     for (;;) {
-        break;
+break;
         if (is->abort_request)
             break;
 #ifdef FFP_MERGE
@@ -3851,7 +4098,7 @@ static int read_thread(void *arg)
                     ret = av_parser_parse2(parser, ffp->vid_avctx, &parser_data, &parser_size,pkt->data+ret, pkt->size-ret, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
                 }
                 pkt->flags |= parser->pict_type ==  AV_PICTURE_TYPE_I ? AVFMT_FLAG_VIDEO_FRAME_I : (parser->pict_type ==  AV_PICTURE_TYPE_P ? AVFMT_FLAG_VIDEO_FRAME_P : AVFMT_FLAG_VIDEO_FRAME_B);
-//                av_log(NULL, AV_LOG_ERROR, "%s %d yangwen.set_speed %llf, size %d pts %lld,flags 0x%08x,key %d,parsed %d pict_type: %s\n",__FUNCTION__,__LINE__,set_speed, pkt->size, pkt->pts,pkt->flags,pkt->flags&AV_PKT_FLAG_KEY,ret,parser->pict_type ==  AV_PICTURE_TYPE_I ? "I_frame" : parser->pict_type ==  AV_PICTURE_TYPE_P ? "P_frame" : "B_frame");
+                av_log(NULL, AV_LOG_ERROR, "%s %d yangwen.set_speed %llf, size %d pts %lld,flags 0x%08x,key %d,parsed %d pict_type: %s\n",__FUNCTION__,__LINE__,set_speed, pkt->size, pkt->pts,pkt->flags,pkt->flags&AV_PKT_FLAG_KEY,ret,parser->pict_type ==  AV_PICTURE_TYPE_I ? "I_frame" : parser->pict_type ==  AV_PICTURE_TYPE_P ? "P_frame" : "B_frame");
             }
 
             packet_queue_put(&is->videoq, pkt);
@@ -3928,6 +4175,8 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
         goto fail;
     if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
         goto fail;
+    if (frame_cachebufferqueue_init(&is->pictq_rev) < 0)
+        goto fail;
 
     if (packet_queue_init(&is->videoq) < 0 ||
         packet_queue_init(&is->audioq) < 0 ||
@@ -3990,7 +4239,8 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     }
     is->initialized_decoder = 1;
     is->set_frame_type_mode  = AVFMT_FLAG_VIDEO_FRAME_I | AVFMT_FLAG_VIDEO_FRAME_P | AVFMT_FLAG_VIDEO_FRAME_B;
-    is->video_forword_reverse_mode = FFP_VIDEO_STEP_NEXT_MODE_FORWORD;
+    is->video_forword_reverse_mode = FFP_VIDEO_STEP_NEXT_MODE_REVERSE;
+    ffp->framedrop = 0;
     return is;
 fail:
     is->initialized_decoder = 1;

@@ -180,9 +180,11 @@ typedef struct PacketQueue {
 } PacketQueue;
 
 // #define VIDEO_PICTURE_QUEUE_SIZE 3
-#define VIDEO_PICTURE_QUEUE_SIZE_MIN        (5)
+#define VIDEO_PICTURE_QUEUE_SIZE_MIN        (10)
 #define VIDEO_PICTURE_QUEUE_SIZE_MAX        (16)
+#define VIDEO_PICTURE_QUEUE_SIZE_REVERSE    (30)
 #define VIDEO_PICTURE_QUEUE_SIZE_DEFAULT    (VIDEO_PICTURE_QUEUE_SIZE_MIN)
+
 #define SUBPICTURE_QUEUE_SIZE 16
 #define SAMPLE_QUEUE_SIZE 9
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, FFMAX(VIDEO_PICTURE_QUEUE_SIZE_MAX, SUBPICTURE_QUEUE_SIZE))
@@ -243,6 +245,24 @@ typedef struct FrameQueue {
     PacketQueue *pktq;
 } FrameQueue;
 
+typedef enum FrameReadOrder{
+    READ_ORDER_REVERSE = -1,
+    READ_ORDER_DEFAULT = 0,
+    READ_ORDER_FORWORD = 1,
+} FrameReadOrder;
+
+typedef struct FrameCacheBufferQueue {
+    AVFrame *frame[VIDEO_PICTURE_QUEUE_SIZE_REVERSE];
+    int rindex;
+    int windex;
+    int size;
+    int max_size;
+    //enum FrameReadOrder read_order;
+    SDL_mutex *mutex;
+    SDL_cond *cond;
+} FrameCacheBufferQueue;
+
+
 enum {
     AV_SYNC_AUDIO_MASTER, /* default choice */
     AV_SYNC_VIDEO_MASTER,
@@ -297,8 +317,10 @@ typedef struct VideoState {
     Clock extclk;
 
     FrameQueue pictq;
+    FrameQueue pictq_reverse;
     FrameQueue subpq;
     FrameQueue sampq;
+    FrameCacheBufferQueue pictq_rev;
 
     Decoder auddec;
     Decoder viddec;
