@@ -731,7 +731,7 @@ static int frame_queue_init(FrameQueue *f, PacketQueue *pktq, int max_size, int 
 static void frame_queue_destory(FrameQueue *f)
 {
     int i;
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     for (i = 0; i < f->max_size; i++) {
         Frame *vp = &f->queue[i];
         frame_queue_unref_item(vp);
@@ -751,25 +751,25 @@ static void frame_queue_signal(FrameQueue *f)
 
 static Frame *frame_queue_peek(FrameQueue *f)
 {
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
 }
 
 static Frame *frame_queue_peek_next(FrameQueue *f)
 {
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     return &f->queue[(f->rindex + f->rindex_shown + 1) % f->max_size];
 }
 
 static Frame *frame_queue_peek_last(FrameQueue *f)
 {
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     return &f->queue[f->rindex];
 }
 
 static Frame *frame_queue_peek_writable(FrameQueue *f)
 {
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     /* wait until we have space to put a new frame */
     SDL_LockMutex(f->mutex);
     while (f->size >= f->max_size &&
@@ -786,7 +786,7 @@ static Frame *frame_queue_peek_writable(FrameQueue *f)
 
 static Frame *frame_queue_peek_readable(FrameQueue *f)
 {
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     /* wait until we have a readable a new frame */
     SDL_LockMutex(f->mutex);
     while (f->size - f->rindex_shown <= 0 &&
@@ -803,7 +803,7 @@ static Frame *frame_queue_peek_readable(FrameQueue *f)
 
 static void frame_queue_push(FrameQueue *f)
 {
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     if (++f->windex == f->max_size)
         f->windex = 0;
     SDL_LockMutex(f->mutex);
@@ -814,7 +814,7 @@ static void frame_queue_push(FrameQueue *f)
 
 static void frame_queue_next(FrameQueue *f)
 {
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     if (f->keep_last && !f->rindex_shown) {
         f->rindex_shown = 1;
         return;
@@ -831,7 +831,7 @@ static void frame_queue_next(FrameQueue *f)
 /* return the number of undisplayed frames in the queue */
 static int frame_queue_nb_remaining(FrameQueue *f)
 {
-    av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
+    //av_log(NULL, AV_LOG_ERROR, "%s %d.rindex %d,windex %d,rindex_shown %d,size %d\n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->rindex_shown,f->size);
     return f->size - f->rindex_shown;
 }
 
@@ -890,8 +890,10 @@ static int frame_cachebufferqueue_write(FrameCacheBufferQueue *f, AVFrame *avf, 
 {
     if (!avf)
         return -1;
+//    av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. r %d,w %d,size %d \n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->size);
     SDL_LockMutex(f->mutex);
-    memcpy(f->frame[f->windex],avf,sizeof(AVFrame));
+    av_frame_move_ref(f->frame[f->windex],avf);
+    //memcpy(f->frame[f->windex],avf,sizeof(AVFrame));
     f->size++;
     f->windex++;
     if (r_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE)
@@ -919,16 +921,19 @@ static int frame_cachebufferqueue_writable(FrameCacheBufferQueue *f)
 static int frame_cachebufferqueue_read(FrameCacheBufferQueue *f, AVFrame *avf, int r_mode)
 {
     int ret = 0;
+//    av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. r %d,w %d,size %d \n",__FUNCTION__,__LINE__,f->rindex,f->windex,f->size);
     SDL_LockMutex(f->mutex);
-    if (( f->rindex < 0) || (f->rindex > f->size))
+    if (( f->rindex < 0) || (f->rindex > f->windex)) {
         ret = 0;
-    else
+    } else {
         ret = 1;
-        memcpy(avf,f->frame[f->rindex],sizeof(AVFrame));
+        //memcpy(avf,f->frame[f->rindex],sizeof(AVFrame));
+        av_frame_move_ref(avf,f->frame[f->rindex]);
         if (r_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD)
             f->rindex++;
         else 
             f->rindex--;
+    }
     SDL_CondSignal(f->cond);
     SDL_UnlockMutex(f->mutex);
     return ret;
@@ -953,11 +958,13 @@ static void frame_cachebufferqueue_flush(FrameCacheBufferQueue *f)
 {
     int i = 0;
     SDL_LockMutex(f->mutex);
+    for (i = 0; i < f->windex; i++) {
+        //memset(f->frame[i], 0, sizeof(AVFrame));
+        av_frame_unref(f->frame[i]);
+    }
     f->size = 0;
     f->rindex = -1;
     f->windex = 0;
-    //for (i = 0; i < f->max_size; i++)
-        //memset(f->frame[i], 0, sizeof(AVFrame));
 
     SDL_UnlockMutex(f->mutex);
     return;
@@ -2547,26 +2554,24 @@ if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
 
         if (!find_eof && frame_consumed_reverse && !find_new_gop) {
             ret = get_video_frame(ffp, frame);
-
-            if (ret < 0) {
-                if (ret == AVERROR_EOF){
-                    find_eof = true;
-                    av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. AVERROR_EOF\n",__FUNCTION__,__LINE__);
-                    av_frame_unref(frame);
-                }
-                else 
-                    goto the_end;
-            }
-            if (!ret)
+            if (ret == AVERROR_EOF){
+                find_eof = true;
+                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. AVERROR_EOF\n",__FUNCTION__,__LINE__);
+                av_frame_unref(frame);
+            } else if (ret < 0) {
+                goto the_end;
+            } else if (!ret) {
                 continue;
-            frame_consumed_reverse = false;
-            //duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
-            //pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            if (is_key_frame = frame->pict_type == AV_PICTURE_TYPE_I) {
-                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. find new  I frame,pts %llf,pts %lld,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__, frame->pts * av_q2d(tb),frame->pts,frame->pict_type,frame->flags);
-                key_pts = frame->pts;
             } else {
-                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. find new BP frame,pts %llf,pts %lld,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__, frame->pts * av_q2d(tb),frame->pts,frame->pict_type,frame->flags);
+                frame_consumed_reverse = false;
+                //duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+                //pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+                if (is_key_frame = frame->pict_type == AV_PICTURE_TYPE_I) {
+                    av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. find new frame I ,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,frame->pts*av_q2d(tb),frame->pts,frame->data[0],av_buffer_get_ref_count(frame->buf[0]),frame->pict_type,frame->flags);
+                    key_pts = frame->pts;
+                } else {
+                    av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. find new frame BP,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,frame->pts*av_q2d(tb),frame->pts,frame->data[0],av_buffer_get_ref_count(frame->buf[0]),frame->pict_type,frame->flags);
+                }
             }
             //TODO:pts how to deal with
         }
@@ -2575,16 +2580,15 @@ if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
 
         if (!frame_consumed_reverse && !find_new_gop) { //new gop need wait to deal until olders consumed
             if (!(frame_cachebufferqueue_writable(&is->pictq_rev))) {//reverse queue is full
-                //discard longlong gop frame;
-                //av_usleep(10 * 1000);
-                //continue;
                 frame_consumed_reverse = true;
                 find_new_gop = true;
                 av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will frame_cachebufferqueue_writable faild,reverse queue is full\n",__FUNCTION__,__LINE__);
                 continue;
             } else {
-                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will frame_cachebufferqueue_write  pts %llf pts %lld,pict_type %d\n",__FUNCTION__,__LINE__,frame->pts * av_q2d(tb),frame->pts,frame->pict_type);
+                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will queue_reverse,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,frame->pts*av_q2d(tb),frame->pts,frame->data[0],av_buffer_get_ref_count(frame->buf[0]),frame->pict_type,frame->flags);
                 frame_cachebufferqueue_write(&is->pictq_rev,frame,mode);
+                //frame = is->pictq_rev.frame[is->pictq_rev.windex - 1];
+                //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will queue_reverse,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,is->pictq_rev.frame[is->pictq_rev.windex - 1]->pts*av_q2d(tb),is->pictq_rev.frame[is->pictq_rev.windex - 1]->pts,is->pictq_rev.frame[is->pictq_rev.windex - 1]->data[0],av_buffer_get_ref_count(is->pictq_rev.frame[is->pictq_rev.windex - 1]->buf[0]),is->pictq_rev.frame[is->pictq_rev.windex - 1]->pict_type,is->pictq_rev.frame[is->pictq_rev.windex - 1]->flags);
                 frame_consumed_reverse = true;
             }
         }
@@ -2595,9 +2599,8 @@ if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
                 pts = (frame_rev->pts == AV_NOPTS_VALUE) ? NAN : frame_rev->pts * av_q2d(tb);
                 //pts = pts + duration;
                 //SDL_Delay(100);
-                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. will queue_picture pts %llf,org_pts %llf,duration %llf,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,pts,frame_rev->pts * av_q2d(tb),duration,frame_rev->pict_type,frame->flags);
+                av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will queue_picture,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,frame_rev->pts*av_q2d(tb),frame_rev->pts,frame_rev->data[0],av_buffer_get_ref_count(frame_rev->buf[0]),frame_rev->pict_type,frame_rev->flags);
                 ret = queue_picture(ffp, frame_rev, pts, duration, frame_rev->pkt_pos, is->viddec.pkt_serial);
-                //av_frame_unref(frame_rev);
             } else {
                 //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. will frame_cachebufferqueue_read faild\n",__FUNCTION__,__LINE__);
             }

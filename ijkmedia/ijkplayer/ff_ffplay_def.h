@@ -317,7 +317,6 @@ typedef struct VideoState {
     Clock extclk;
 
     FrameQueue pictq;
-    FrameQueue pictq_reverse;
     FrameQueue subpq;
     FrameQueue sampq;
     FrameCacheBufferQueue pictq_rev;
