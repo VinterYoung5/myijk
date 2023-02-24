@@ -82,7 +82,7 @@
 #define FAST_BUFFERING_CHECK_PER_MILLISECONDS   (50)
 #define MAX_RETRY_CONVERT_IMAGE                 (3)
 
-#define MAX_QUEUE_SIZE (5 * 1024 * 1024)
+#define MAX_QUEUE_SIZE (2 * 1024 * 1024)
 #define MAX_ACCURATE_SEEK_TIMEOUT (5000)
 #ifdef FFP_MERGE
 #define MIN_FRAMES 25
@@ -182,7 +182,7 @@ typedef struct PacketQueue {
 // #define VIDEO_PICTURE_QUEUE_SIZE 3
 #define VIDEO_PICTURE_QUEUE_SIZE_MIN        (3)
 #define VIDEO_PICTURE_QUEUE_SIZE_MAX        (16)
-#define VIDEO_PICTURE_QUEUE_SIZE_REVERSE    (30)
+#define VIDEO_PICTURE_QUEUE_SIZE_REVERSE    (60)
 #define VIDEO_PICTURE_QUEUE_SIZE_DEFAULT    (VIDEO_PICTURE_QUEUE_SIZE_MIN)
 
 #define SUBPICTURE_QUEUE_SIZE 16
@@ -303,6 +303,7 @@ typedef struct VideoState {
     int last_paused;
     int queue_attachments_req;
     int seek_req;
+    int seek_reverse;
     int seek_flags;
     int64_t seek_pos;
     int64_t seek_rel;
