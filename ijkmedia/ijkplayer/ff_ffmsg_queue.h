@@ -223,7 +223,6 @@ inline static void msg_queue_start(MessageQueue *q)
 {
     SDL_LockMutex(q->mutex);
     q->abort_request = 0;
-
     AVMessage msg;
     msg_init_msg(&msg);
     msg.what = FFP_MSG_FLUSH;

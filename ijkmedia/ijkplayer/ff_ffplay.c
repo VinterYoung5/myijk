@@ -2424,7 +2424,7 @@ static int ffplay_video_thread(void *arg)
         return AVERROR(ENOMEM);
     }
 
-if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
+if (false && is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
     for (;;) {
 
         ret = get_video_frame(ffp, frame);
@@ -2545,12 +2545,12 @@ if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
 
 } else if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE) {
 
-    int mode = FFP_VIDEO_STEP_NEXT_MODE_REVERSE;
+    int mode = FFP_VIDEO_STEP_NEXT_MODE_FORWORD;
     pts = 0.0f;
     bool find_eof = false;
     for (;;) {
-        SDL_Delay(100);
-        av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. is->eof %d,find_eof %d,frame_consumed_reverse %d,find_new_gop %d\n",__FUNCTION__,__LINE__,is->eof,find_eof,frame_consumed_reverse,find_new_gop);
+        //SDL_Delay(100);
+        //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. is->eof %d,find_eof %d,frame_consumed_reverse %d,find_new_gop %d\n",__FUNCTION__,__LINE__,is->eof,find_eof,frame_consumed_reverse,find_new_gop);
 
         //if (!find_eof && frame_consumed_reverse && !find_new_gop) {
         if (frame_consumed_reverse && !find_new_gop) {
@@ -2581,8 +2581,8 @@ if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
             //TODO:pts how to deal with
         }
         //reverse queue remain frames and come up the I frame, it means new gops;
-        //find_new_gop = is_key_frame && (frame_cachebufferqueue_readable(&is->pictq_rev, mode)) || find_eof;//current gop have not been consumed, donot queue push
-        find_new_gop = is_key_frame && (frame_cachebufferqueue_readable(&is->pictq_rev, mode));//current gop have not been consumed, donot queue push
+        //current gop have not been consumed, donot queue push, find_eof needed when AVERROR_EOF and drain the reverse queue
+        find_new_gop = is_key_frame && (frame_cachebufferqueue_readable(&is->pictq_rev, mode)) || find_eof;
 
         if (!frame_consumed_reverse && !find_new_gop) { //new gop need wait to deal until olders consumed
             if (!(frame_cachebufferqueue_writable(&is->pictq_rev))) {//reverse queue is full
@@ -3682,7 +3682,8 @@ ffp_seek_to_l(ffp,ffp_get_duration_l(ffp));
 
     for (;;) {
 
- 
+        if (is->abort_request)
+            break;
         pkt->flags = 0;
         if (is->seek_req) {
             int64_t seek_target = is->seek_pos;
