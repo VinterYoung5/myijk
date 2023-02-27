@@ -2543,7 +2543,7 @@ if (false && is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD)
             goto the_end;
     } 
 
-} else if (is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE) {
+} else if (true || is->video_forword_reverse_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE) {
 
     int mode = FFP_VIDEO_STEP_NEXT_MODE_FORWORD;
     pts = 0.0f;
@@ -5188,6 +5188,14 @@ void ffp_get_vid_clock_speed(VideoState *is,double *speed)
     get_clock_speed(&is->vidclk, speed);
     return;
 }
+void ffp_set_play_reverse_mode(VideoState *is, int mode)
+{
+    if (is) {
+        is->video_forword_reverse_mode = mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE ?
+            FFP_VIDEO_STEP_NEXT_MODE_REVERSE : FFP_VIDEO_STEP_NEXT_MODE_FORWORD;
+    }
+    return;
+}
 
 void ffp_toggle_buffering_l(FFPlayer *ffp, int buffering_on)
 {
@@ -5672,6 +5680,10 @@ void ffp_set_property_int64(FFPlayer *ffp, int id, int64_t value)
                 }
             }
             break;
+        case FFP_PROP_INT64_SET_PLAY_REVERSE_MODE:
+            if (ffp) {
+                ffp_set_play_reverse_mode(ffp->is,value);
+            }
         default:
             break;
     }
