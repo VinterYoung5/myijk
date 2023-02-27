@@ -49,12 +49,12 @@
         <item name="android:src">@drawable/ic_skip_next_white_48dp</item>
         <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
     </style>
-    <style name="MediaButton.Fun1">
-        <item name="android:src">@drawable/ic_action_dark_settings</item>
+    <style name="MediaButton.Rfwd">
+        <item name="android:src">@drawable/iconmonstr_sidebar_collapse_lined_240</item>
         <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
     </style>
-    <style name="MediaButton.Fun2">
-        <item name="android:src">@drawable/ic_action_dark_settings</item>
+    <style name="MediaButton.Rrev">
+        <item name="android:src">@drawable/iconmonstr_sidebar_expand_lined_240</item>
         <item name="android:contentDescription">@string/lockscreen_transport_ffw_description</item>
     </style>
 </resources>

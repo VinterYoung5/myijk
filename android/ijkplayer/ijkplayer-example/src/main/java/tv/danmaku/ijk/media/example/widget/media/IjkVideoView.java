@@ -322,6 +322,13 @@ public class IjkVideoView extends FrameLayout implements VMediaController.MediaP
         mMediaPlayer.stepNext(1);
     }
 
+    public void playReverseMode_reverse(){
+        mMediaPlayer.setPlayReverseMode(1);
+    }
+
+    public void playReverseMode_forword(){
+        mMediaPlayer.setPlayReverseMode(-1);
+    }
     public void changePlaySpeed(int diff) {
         int speedPos =  mPlaySpeedPos + diff;
         speedPos = speedPos < 0 ? 0 : (speedPos > mPlaySpeedRange.length - 1 ? mPlaySpeedRange.length - 1 : speedPos);
@@ -343,12 +350,14 @@ public class IjkVideoView extends FrameLayout implements VMediaController.MediaP
         }
     }
 
-    public void setFun1(int parm) {
-        Toast.makeText(mAppContext.getApplicationContext(), "setFun1 " + parm, Toast.LENGTH_SHORT).show();
+    public void setReverseMode_forword() {
+        Toast.makeText(mAppContext.getApplicationContext(), "play forword ", Toast.LENGTH_SHORT).show();
+        playReverseMode_forword();
     }
 
-    public void setFun2(int parm) {
-        Toast.makeText(mAppContext.getApplicationContext(), "setFun2 " + parm, Toast.LENGTH_SHORT).show();
+    public void setReverseMode_reverse() {
+        Toast.makeText(mAppContext.getApplicationContext(), "play reverse ", Toast.LENGTH_SHORT).show();
+        playReverseMode_reverse();
     }
 
     @TargetApi(Build.VERSION_CODES.M)

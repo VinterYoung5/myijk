@@ -52,12 +52,12 @@
             android:id="@+id/next"
             style="@style/MediaButton.Next"/>
         <ImageButton
-            android:id="@+id/fun1"
-            style="@style/MediaButton.Fun1"/>
+            android:id="@+id/r_fwd"
+            style="@style/MediaButton.Rfwd"/>
 
         <ImageButton
-            android:id="@+id/fun2"
-            style="@style/MediaButton.Fun2"/>
+            android:id="@+id/r_rev"
+            style="@style/MediaButton.Rrev"/>
 
     </LinearLayout>
 

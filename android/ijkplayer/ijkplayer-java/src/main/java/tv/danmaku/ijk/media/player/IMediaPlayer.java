@@ -118,6 +118,7 @@ public interface IMediaPlayer {
     void setSpeed(float speed);
     float getSpeed(float defaultSpeed);
     void stepNext(int mode);
+    void setPlayReverseMode(int mode);
     MediaInfo getMediaInfo();
 
     @SuppressWarnings("EmptyMethod")

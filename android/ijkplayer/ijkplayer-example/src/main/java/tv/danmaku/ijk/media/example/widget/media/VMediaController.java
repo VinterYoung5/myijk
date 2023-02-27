@@ -121,8 +121,8 @@ public class VMediaController extends FrameLayout {
     private ImageButton mNextButton;
     //@UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.P, trackingBug = 115609023)
     private ImageButton mPrevButton;
-    private ImageButton mFun1Button;
-    private ImageButton mFun2Button;
+    private ImageButton mRfwdButton;
+    private ImageButton mRrevButton;
 
     private CharSequence mPlayDescription;
     private CharSequence mPauseDescription;
@@ -340,19 +340,19 @@ public class VMediaController extends FrameLayout {
         }
 
         //add unamed function button by vinter
-        mFun1Button = v.findViewById(R.id.fun1);
-        if (mFun1Button != null) {
-            mFun1Button.setOnClickListener(mFun1Listener);
+        mRfwdButton = v.findViewById(R.id.r_fwd);
+        if (mRfwdButton != null) {
+            mRfwdButton.setOnClickListener(mRfwdListener);
             if (!mFromXml) {
-                mFun1Button.setVisibility(mUseFastForward ? View.VISIBLE : View.GONE);
+                mRfwdButton.setVisibility(mUseFastForward ? View.VISIBLE : View.GONE);
             }
         }
 
-        mFun2Button = v.findViewById(R.id.fun2);
-        if (mFun2Button != null) {
-            mFun2Button.setOnClickListener(mFun2Listener);
+        mRrevButton = v.findViewById(R.id.r_rev);
+        if (mRrevButton != null) {
+            mRrevButton.setOnClickListener(mRrevListener);
             if (!mFromXml) {
-                mFun2Button.setVisibility(mUseFastForward ? View.VISIBLE : View.GONE);
+                mRrevButton.setVisibility(mUseFastForward ? View.VISIBLE : View.GONE);
             }
         }
 
@@ -756,18 +756,18 @@ public class VMediaController extends FrameLayout {
         }
     };
 
-    private final View.OnClickListener mFun1Listener = new View.OnClickListener() {
+    private final View.OnClickListener mRfwdListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            mPlayer.setFun1(1);
+            mPlayer.setReverseMode_forword();
             //Toast.makeText(mContext.getApplicationContext(),"fun1 pressed:", Toast.LENGTH_SHORT).show();
         }
     };
 
-    private final View.OnClickListener mFun2Listener = new View.OnClickListener() {
+    private final View.OnClickListener mRrevListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            mPlayer.setFun2(2);
+            mPlayer.setReverseMode_reverse();
             //Toast.makeText(mContext.getApplicationContext(),"fun2 pressed:", Toast.LENGTH_SHORT).show();
         }
     };
@@ -814,8 +814,8 @@ public class VMediaController extends FrameLayout {
         boolean canSeekBackward();
         boolean canSeekForward();
         void changePlaySpeed(int diff);
-        void setFun1(int parm);
-        void setFun2(int parm);
+        void setReverseMode_forword();
+        void setReverseMode_reverse();
         /**
          * Get the audio session id for the player used by this VideoView. This can be used to
          * apply audio effects to the audio track of a video.

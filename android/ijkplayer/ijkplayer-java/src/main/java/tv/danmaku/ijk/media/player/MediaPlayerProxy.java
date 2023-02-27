@@ -176,7 +176,10 @@ public class MediaPlayerProxy implements IMediaPlayer {
     public void stepNext(int mode) {
         mBackEndMediaPlayer.stepNext(mode);
     }
-
+    @Override
+    public void setPlayReverseMode(int mode) {
+        mBackEndMediaPlayer.setPlayReverseMode(mode);
+    }
     @Override
     public MediaInfo getMediaInfo() {
         return mBackEndMediaPlayer.getMediaInfo();

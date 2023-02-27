@@ -303,6 +303,11 @@ public class AndroidMediaPlayer extends AbstractMediaPlayer {
         return;
     }
     @Override
+    public void setPlayReverseMode(int mode) {
+        // TODO: no support
+        return;
+    }
+    @Override
     public MediaInfo getMediaInfo() {
         if (sMediaInfo == null) {
             MediaInfo module = new MediaInfo();

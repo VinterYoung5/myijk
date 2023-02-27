@@ -272,6 +272,10 @@ public class IjkExoMediaPlayer extends AbstractMediaPlayer {
         // TODO: no support
         return;
     }
+    public void setPlayReverseMode(int mode) {
+        // TODO: no support
+        return;
+    }
     @Override
     public MediaInfo getMediaInfo() {
         // TODO: no support
