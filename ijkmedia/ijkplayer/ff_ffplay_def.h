@@ -443,7 +443,10 @@ typedef struct VideoState {
     int seek_buffering;
     int set_frame_type_mode;
     int cur_frame_type_mode;
-    int video_forword_reverse_mode;
+    int video_rev_mode;
+    int video_rev_request;
+    int64_t video_rev_keytime; //current reverse play postion
+    int64_t video_rev_keytime_last; //current reverse play last postion
 } VideoState;
 
 /* options specified by the user */
