@@ -78,7 +78,8 @@ public class IjkVideoView extends FrameLayout implements VMediaController.MediaP
     private static final int STATE_PLAYING = 3;
     private static final int STATE_PAUSED = 4;
     private static final int STATE_PLAYBACK_COMPLETED = 5;
-
+    private static final int FFP_VIDEO_STEP_NEXT_MODE_REVERSE = -1;
+    private static final int FFP_VIDEO_STEP_NEXT_MODE_FORWORD =  1;
     // mCurrentState is a VideoView object's current state.
     // mTargetState is the state that a method caller intends to reach.
     // For instance, regardless the VideoView object's current state,
@@ -323,11 +324,11 @@ public class IjkVideoView extends FrameLayout implements VMediaController.MediaP
     }
 
     public void playReverseMode_reverse(){
-        mMediaPlayer.setPlayReverseMode(1);
+        mMediaPlayer.setPlayReverseMode(FFP_VIDEO_STEP_NEXT_MODE_REVERSE);
     }
 
     public void playReverseMode_forword(){
-        mMediaPlayer.setPlayReverseMode(-1);
+        mMediaPlayer.setPlayReverseMode(FFP_VIDEO_STEP_NEXT_MODE_FORWORD);
     }
     public void changePlaySpeed(int diff) {
         int speedPos =  mPlaySpeedPos + diff;
