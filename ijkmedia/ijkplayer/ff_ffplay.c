@@ -2609,13 +2609,19 @@ if (false && is->video_rev_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
     } 
 
 } else if (true || is->video_rev_mode == FFP_VIDEO_STEP_NEXT_MODE_REVERSE) {
-
-    int gopmode = is->video_rev_mode;
+    int is_gop_mode = is->video_rev_mode;
+    int read_gop_mode = is->video_rev_mode;
     pts = 0.0f;
     bool find_eof = false;
     int cnt = 0;
+    bool mode_changed = false;
+    
     for (;;) {
         //SDL_Delay(100);
+        if (is_gop_mode != is->video_rev_mode) {
+            mode_changed = true;
+            is_gop_mode = is->video_rev_mode;
+        }
 //        av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. is->eof %d,find_eof %d,frame_consumed_reverse %d,find_new_gop %d\n",__FUNCTION__,__LINE__,is->eof,find_eof,frame_consumed_reverse,find_new_gop);
         av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.is->video_rev_mode %d\n",__FUNCTION__,__LINE__,is->video_rev_mode);
         if (frame_consumed_reverse && !find_new_gop && !find_eof) {
@@ -2644,7 +2650,7 @@ if (false && is->video_rev_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
                 if (is_key_frame = frame->pict_type == AV_PICTURE_TYPE_I) {
                     find_new_gop =  cnt > 1 ? true : false;
                     cnt = 1;
-                    gopmode = is->video_rev_mode;
+                    read_gop_mode = is->video_rev_mode;
                     av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. find new frame I ,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,frame->pts*av_q2d(tb),frame->pts,frame->data[0],av_buffer_get_ref_count(frame->buf[0]),frame->pict_type,frame->flags);
                     //key_pts = frame->pts;
                 } else {
@@ -2655,8 +2661,9 @@ if (false && is->video_rev_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
         }
         //current gop have not been consumed, donot queue push, find_eof needed when AVERROR_EOF and drain the reverse queue
 
-        if (!frame_consumed_reverse && is->video_rev_request){
+        if (!frame_consumed_reverse && mode_changed){
             frame_consumed_reverse = true;
+            mode_changed = false;
             av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will drop_frame  ,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,frame->pts*av_q2d(tb),frame->pts,frame->data[0],av_buffer_get_ref_count(frame->buf[0]),frame->pict_type,frame->flags);
             av_frame_unref(frame);
             continue;
@@ -2670,7 +2677,7 @@ if (false && is->video_rev_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
                 continue;
             } else {
                 av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will queue_reverse,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,frame->pts*av_q2d(tb),frame->pts,frame->data[0],av_buffer_get_ref_count(frame->buf[0]),frame->pict_type,frame->flags);
-                frame_cachebufferqueue_write(&is->pictq_rev,frame, gopmode);
+                frame_cachebufferqueue_write(&is->pictq_rev,frame, read_gop_mode);
                 //av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.will queue_reverse,pts %llf,ptss %lld,data0 %p,ref %d,pict_type %d,flags 0x%08x\n",__FUNCTION__,__LINE__,frame->pts*av_q2d(tb),frame->pts,frame->data[0],av_buffer_get_ref_count(frame->buf[0]),frame->pict_type,frame->flags);
                 frame_consumed_reverse = true;
             }
@@ -3814,6 +3821,7 @@ static int read_thread(void *arg)
                     packet_queue_flush(&is->videoq);
                     packet_queue_put(&is->videoq, &flush_pkt);
                 }
+                av_log(NULL, AV_LOG_ERROR, "%s %d: yangwen FFP_MSG_SEEK_COMPLETE seek_target %x\n", __FUNCTION__,__LINE__,is->seek_flags);
                 if (is->seek_flags & AVSEEK_FLAG_BYTE) {
                    set_clock(&is->extclk, NAN, 0);
                 } else {
