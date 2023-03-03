@@ -1532,11 +1532,16 @@ retry:
             /* dequeue the picture */
             lastvp = frame_queue_peek_last(&is->pictq);
             vp = frame_queue_peek(&is->pictq);
-
-            if (vp->serial != is->videoq.serial) {
+            
+//            if (is->video_rev_display_keep == true && vp->serial != is->videoq.serial){
+//                vp->serial = is->videoq.serial;
+//                is->video_rev_display_keep = false;
+//            }
+            //reverse seek should display all frame; can not jump by frame_queue_next
+            if (false && vp->serial != is->videoq.serial) {
                 frame_queue_next(&is->pictq);
                 av_log(NULL, AV_LOG_FATAL,
-                           "frame_queue_next vp->serial %d,is->videoq.serial %d \n",vp->serial,is->videoq.serial);
+                           "%s %d.frame_queue_next vp->serial %d,is->videoq.serial %d \n",__FUNCTION__,__LINE__,vp->serial,is->videoq.serial);
                 goto retry;
             }
 
@@ -2620,10 +2625,12 @@ if (false && is->video_rev_mode == FFP_VIDEO_STEP_NEXT_MODE_FORWORD) {
         //SDL_Delay(100);
         if (is_gop_mode != is->video_rev_mode) {
             mode_changed = true;
+//            is->video_rev_display_keep = true; //display thread will use
             is_gop_mode = is->video_rev_mode;
         }
+
 //        av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1. is->eof %d,find_eof %d,frame_consumed_reverse %d,find_new_gop %d\n",__FUNCTION__,__LINE__,is->eof,find_eof,frame_consumed_reverse,find_new_gop);
-        av_log(NULL, AV_LOG_ERROR, "%s %d.yangwen1.is->video_rev_mode %d\n",__FUNCTION__,__LINE__,is->video_rev_mode);
+
         if (frame_consumed_reverse && !find_new_gop && !find_eof) {
             ret = get_video_frame(ffp, frame);
 

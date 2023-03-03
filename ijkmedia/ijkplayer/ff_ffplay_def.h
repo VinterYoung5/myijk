@@ -446,6 +446,7 @@ typedef struct VideoState {
     int cur_frame_type_mode;
     int video_rev_mode;
     int video_rev_request;
+//    bool video_rev_display_keep;
     int64_t video_rev_keytime; //current reverse play postion
     int64_t video_rev_keytime_last; //current reverse play last postion
 } VideoState;
