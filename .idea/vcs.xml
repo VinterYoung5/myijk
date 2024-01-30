@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/android/contrib/ffmpeg-arm64" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/android/contrib/ffmpeg-armv7a" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/extra/ffmpeg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/extra/libyuv" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/extra/soundtouch" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ijkmedia/ijksoundtouch" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ijkmedia/ijkyuv" vcs="Git" />
+  </component>
+</project>
