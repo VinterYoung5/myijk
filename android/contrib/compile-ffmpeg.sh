@@ -27,7 +27,7 @@ set -e
 set +x
 
 FF_ACT_ARCHS_32="armv5 armv7a x86"
-FF_ACT_ARCHS_64="armv7a arm64"
+FF_ACT_ARCHS_64="arm64"
 FF_ACT_ARCHS_ALL=$FF_ACT_ARCHS_64
 
 echo_archs() {

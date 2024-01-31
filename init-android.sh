@@ -39,7 +39,7 @@ function pull_fork()
     cd -
 }
 
-pull_fork "armv7a"
+# pull_fork "armv7a"
 pull_fork "arm64"
 
 ./init-config.sh

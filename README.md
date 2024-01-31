@@ -135,15 +135,18 @@ sudo dpkg-reconfigure dash
 
 ### Build Android
 ```
-git clone https://github.com/Bilibili/ijkplayer.git ijkplayer-android
-cd ijkplayer-android
-git checkout -B latest k0.8.8
+# git clone https://github.com/Bilibili/ijkplayer.git ijkplayer-android
+# cd ijkplayer-android
+# git checkout -B latest k0.8.8
+git clone git@github.com:VinterYoung5/myijk.git
+cd myijk
+
 
 ./init-android.sh
 
 cd android/contrib
 ./compile-ffmpeg.sh clean
-./compile-ffmpeg.sh all
+./compile-ffmpeg.sh arm64
 
 cd ..
 ./compile-ijk.sh all
