@@ -88,6 +88,7 @@ brew install git
 brew install yasm
 
 # add these lines to your ~/.bash_profile or ~/.profile
+# ndk14b is ok, ndk20b fail
 # export ANDROID_SDK=<your sdk path>
 # export ANDROID_NDK=<your ndk path>
 
@@ -141,12 +142,14 @@ sudo dpkg-reconfigure dash
 git clone git@github.com:VinterYoung5/myijk.git
 cd myijk
 
-
 ./init-android.sh
 
 cd android/contrib
 ./compile-ffmpeg.sh clean
 ./compile-ffmpeg.sh arm64
+
+cd ../patchs
+git apply xxx
 
 cd ..
 ./compile-ijk.sh all
