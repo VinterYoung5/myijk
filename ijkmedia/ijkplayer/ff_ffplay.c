@@ -884,7 +884,7 @@ static int frame_cachebufferqueue_destory(FrameCacheBufferQueue *f)
 {
     int i;
     for (i = 0; i < f->max_size; i++) {
-        av_frame_free(f->frame[i]);
+        //av_frame_free(f->frame[i]);
     }
     SDL_DestroyMutex(f->mutex);
     SDL_DestroyCond(f->cond);
