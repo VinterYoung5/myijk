@@ -130,9 +130,13 @@ public class SampleMediaListFragment extends Fragment {
                 "}";
 
         //mAdapter.addItem(manifest_string, "las test");
-        mAdapter.addItem("http://las-tech.org.cn/kwai/las-test_ld500d.flv","360p");
-        mAdapter.addItem("http://las-tech.org.cn/kwai/las-test_sd1000d.flv","540p");
-        mAdapter.addItem("http://las-tech.org.cn/kwai/las-test.flv","720p");
+        //mAdapter.addItem("http://las-tech.org.cn/kwai/las-test_ld500d.flv","360p");
+        //mAdapter.addItem("http://las-tech.org.cn/kwai/las-test_sd1000d.flv","540p");
+        //mAdapter.addItem("http://las-tech.org.cn/kwai/las-test.flv","720p");
+        //mAdapter.addItem("https://cph-msl.akamaized.net/hls/live/2000341/test/master.m3u8","720p");
+        //mAdapter.addItem("https://cdn.bitmovin.com/content/assets/art-of-motion-dash-hls-progressive/MI201109210084_mpeg-4_hd_high_1080p25_10mbits.mp4","720p");
+        mAdapter.addItem("https://media.w3.org/2010/05/sintel/trailer.mp4","540p");
+        mAdapter.addItem("http://www.w3school.com.cn/example/html5/mov_bbb.mp4","540p");
         mAdapter.addItem("http://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8", "bipbop basic master playlist");
         mAdapter.addItem("http://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/gear1/prog_index.m3u8", "bipbop basic 400x300 @ 232 kbps");
         mAdapter.addItem("http://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/gear2/prog_index.m3u8", "bipbop basic 640x480 @ 650 kbps");
